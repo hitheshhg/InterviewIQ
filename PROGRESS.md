@@ -17,8 +17,8 @@
 | **Phase 3** | Firebase Authentication | ✅ COMPLETED | Google OAuth + Email/Password, Firebase Admin backend token verification middleware, Atlas user sync, 7/7 tests passing. |
 | **Phase 4** | Design System & Landing Page | ✅ COMPLETED | Aurora Glassmorphism components (`Button`, `Card`, `Badge`, `Input`, `ScoreGauge`), responsive Navbar/Footer, and high-impact Landing Page with tagline. |
 | **Phase 5** | Gemini Setup | ✅ COMPLETED | Official `google-genai` client, strict Pydantic JSON mode, retry with exponential backoff & model fallback chain, 9/9 tests passing. |
-| **Phase 6** | Resume Upload & ATS Engine | 🔄 READY TO START | PDF/DOCX parser, deterministic ATS scoring + Gemini qualitative feedback, candidate skill-gap analysis against target JD. |
-| **Phase 7** | Interview Engine (Text Mode) | ⏳ PENDING | WebSocket session manager, adaptive difficulty, 5-parameter rubric. |
+| **Phase 6** | Resume Upload & ATS Engine | ✅ COMPLETED | PDF/DOCX extractor, deterministic ATS engine, skill-gap matrix, ResumeAnalyzerPage, 15/15 tests passing. |
+| **Phase 7** | Interview Engine (Text Mode) | 🔄 READY TO START | WebSocket session manager, adaptive difficulty, follow-up generation, 5-parameter rubric. |
 | **Phase 8** | Voice & Real-time Experience | ⏳ PENDING | Web Speech API, SpeechSynthesis, live audio waveform visualizer, AI orb. |
 | **Phase 9** | Report, Roadmap, Dashboard | ⏳ PENDING | Radar chart, PDF download, milestone career roadmap, session history. |
 | **Phase 10** | Hardening & Testing | ⏳ PENDING | Input validation, rate limiting, error boundaries, test suite. |
