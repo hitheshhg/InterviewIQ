@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
-from app.routes import health
+from app.dependencies import init_firebase_admin
+from app.routes import health, auth
 
 # Setup logging
 logging.basicConfig(
@@ -23,6 +24,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"[InterviewIQ] Database initialization failed on startup: {e}")
     
+    try:
+        init_firebase_admin()
+    except Exception as e:
+        logger.error(f"[InterviewIQ] Firebase initialization failed on startup: {e}")
+
     yield
     
     # Shutdown tasks
@@ -48,6 +54,7 @@ app.add_middleware(
 
 # Register routes
 app.include_router(health.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
