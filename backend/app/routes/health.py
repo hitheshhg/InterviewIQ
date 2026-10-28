@@ -20,6 +20,10 @@ async def health_check():
         "services": {
             "api": "healthy",
             "database": db_health,
-            "gemini": "unconfigured" if not settings.GEMINI_API_KEY else "configured",
+            "gemini": {
+                "status": "configured" if settings.GEMINI_API_KEY else "unconfigured",
+                "primary_model": settings.GEMINI_MODEL,
+                "fallback_model": settings.GEMINI_FALLBACK_MODEL
+            } if settings.GEMINI_API_KEY else "unconfigured",
         }
     }
