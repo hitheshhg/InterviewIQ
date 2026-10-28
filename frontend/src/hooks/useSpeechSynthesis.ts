@@ -118,3 +118,4 @@ export const useSpeechSynthesis = (): UseSpeechSynthesisReturn => {
     setVoice,
   };
 };
+

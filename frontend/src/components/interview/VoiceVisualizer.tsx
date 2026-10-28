@@ -60,3 +60,4 @@ export const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
 };
 
 export default VoiceVisualizer;
+
