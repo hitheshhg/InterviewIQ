@@ -1,0 +1,45 @@
+# Project Progress Tracker - InterviewIQ
+
+**Candidate:** Shreya  
+**Target:** VTU Major Project (B.E. Computer Science)  
+**Design Theme:** Aurora Glassmorphism  
+**Frontend Language:** TypeScript  
+
+---
+
+## Phase Status Summary
+
+| Phase | Description | Status | Verification / Notes |
+| :--- | :--- | :--- | :--- |
+| **Phase 0** | Discovery & Plan | ✅ COMPLETED | Monorepo structure, DB schemas, API specs, reference repo analysis approved. |
+| **Phase 1** | Environment & Skeleton | 🔄 IN PROGRESS | Setting up FastAPI backend, React/Vite/TS frontend, and verifying `/health`. |
+| **Phase 2** | MongoDB Atlas Setup | ⏳ PENDING | Manual Atlas cluster setup, Motor async client, collections & indexes. |
+| **Phase 3** | Firebase Authentication | ⏳ PENDING | Google/Email auth, backend token verification middleware. |
+| **Phase 4** | Design System & Landing Page | ⏳ PENDING | Aurora Glassmorphism component library, responsive hero, feature cards. |
+| **Phase 5** | Gemini Setup | ⏳ PENDING | Google GenAI SDK wrapper, Pydantic JSON mode, retry & fallback logic. |
+| **Phase 6** | Resume Upload & ATS Engine | ⏳ PENDING | PDF/DOCX parser, deterministic ATS scoring + Gemini qualitative feedback. |
+| **Phase 7** | Interview Engine (Text Mode) | ⏳ PENDING | WebSocket session manager, adaptive difficulty, 5-parameter rubric. |
+| **Phase 8** | Voice & Real-time Experience | ⏳ PENDING | Web Speech API, SpeechSynthesis, live audio waveform visualizer, AI orb. |
+| **Phase 9** | Report, Roadmap, Dashboard | ⏳ PENDING | Radar chart, PDF download, milestone career roadmap, session history. |
+| **Phase 10** | Hardening & Testing | ⏳ PENDING | Input validation, rate limiting, error boundaries, test suite. |
+| **Phase 11** | Deployment | ⏳ PENDING | Vercel (frontend) + Render (backend) deployment guide. |
+| **Phase 12** | Documentation & Viva Prep | ⏳ PENDING | 25 Viva questions with answers, 5-minute demo script, architecture guide. |
+
+---
+
+## Environment Variables Needed Across Phases
+
+### Backend (`backend/.env`)
+- `PORT`: `8000`
+- `ENVIRONMENT`: `development`
+- `CORS_ORIGINS`: `http://localhost:5173`
+- `MONGODB_URI`: (Added in Phase 2)
+- `FIREBASE_CREDENTIALS_PATH`: (Added in Phase 3)
+- `GEMINI_API_KEY`: (Added in Phase 5)
+- `GEMINI_MODEL`: (Added in Phase 5)
+- `GEMINI_FALLBACK_MODEL`: (Added in Phase 5)
+
+### Frontend (`frontend/.env`)
+- `VITE_API_BASE_URL`: `http://localhost:8000`
+- `VITE_WS_BASE_URL`: `ws://localhost:8000`
+- Firebase Web Config (Added in Phase 3)
