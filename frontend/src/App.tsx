@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Mic, Map, LayoutDashboard } from 'lucide-react';
+import { Map, LayoutDashboard } from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { LandingPage } from './pages/LandingPage';
 import { ResumeAnalyzerPage } from './pages/ResumeAnalyzerPage';
+import { InterviewRoomPage } from './pages/InterviewRoomPage';
 import Card from './components/ui/Card';
 import Button from './components/ui/Button';
 
@@ -57,17 +58,7 @@ export const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<LandingPage onOpenAuth={() => setAuthModalOpen(true)} />} />
                 <Route path="/analyzer" element={<ResumeAnalyzerPage />} />
-                <Route
-                  path="/interview"
-                  element={
-                    <ModulePlaceholder
-                      title="Voice AI Mock Interview Room"
-                      phase="Phases 7 & 8 Pipeline"
-                      icon={<Mic className="w-6 h-6" />}
-                      description="Real-time WebSocket mock interview with Web Speech API audio transcription, animated glowing AI orb, and adaptive difficulty."
-                    />
-                  }
-                />
+                <Route path="/interview" element={<InterviewRoomPage />} />
                 <Route
                   path="/roadmap"
                   element={
