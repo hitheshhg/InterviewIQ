@@ -20,8 +20,8 @@
 | **Phase 6** | Resume Upload & ATS Engine | ✅ COMPLETED | PDF/DOCX extractor, deterministic ATS engine, skill-gap matrix, ResumeAnalyzerPage, 15/15 tests passing. |
 | **Phase 7** | Interview Engine (Text Mode) | ✅ COMPLETED | Multi-turn state machine, adaptive difficulty (easy/med/hard), 5-parameter rubric evaluation, 1-turn combined AI response, REST + WS endpoints, InterviewRoomPage, 20/20 tests passing. |
 | **Phase 8** | Voice & Real-time Experience | ✅ COMPLETED | Web Speech API SpeechRecognition (STT), SpeechSynthesis (TTS), animated multi-state AI Orb, dynamic audio visualizer, hands-free toggle. |
-| **Phase 9** | Report, Roadmap, Dashboard | 🔄 READY TO START | Radar chart, PDF download, milestone career roadmap, session history. |
-| **Phase 10** | Hardening & Testing | ⏳ PENDING | Input validation, rate limiting, error boundaries, test suite. |
+| **Phase 9** | Report, Roadmap, Dashboard | ✅ COMPLETED | 5-dimension Recharts Radar chart, candidate vs L5 benchmark table, personalized algorithmic career roadmap with milestone tasks, candidate analytics dashboard with area chart trends, PDF print styling, 24/24 tests passing. |
+| **Phase 10** | Hardening & Testing | 🔄 READY TO START | Input validation, rate limiting, error boundaries, test suite. |
 | **Phase 11** | Deployment | ⏳ PENDING | Vercel (frontend) + Render (backend) deployment guide. |
 | **Phase 12** | Documentation & Viva Prep | ⏳ PENDING | 25 Viva questions with answers, 5-minute demo script, architecture guide. |
 
