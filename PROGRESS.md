@@ -12,8 +12,8 @@
 | Phase | Description | Status | Verification / Notes |
 | :--- | :--- | :--- | :--- |
 | **Phase 0** | Discovery & Plan | ✅ COMPLETED | Monorepo structure, DB schemas, API specs, reference repo analysis approved. |
-| **Phase 1** | Environment & Skeleton | 🔄 IN PROGRESS | Setting up FastAPI backend, React/Vite/TS frontend, and verifying `/health`. |
-| **Phase 2** | MongoDB Atlas Setup | ⏳ PENDING | Manual Atlas cluster setup, Motor async client, collections & indexes. |
+| **Phase 1** | Environment & Skeleton | ✅ COMPLETED | FastAPI backend operational with `/health`, Vite + React + TS with Aurora theme, automated tests passing. |
+| **Phase 2** | MongoDB Atlas Setup | 🔄 READY TO START | Manual Atlas cluster setup, Motor async client, collections & indexes. |
 | **Phase 3** | Firebase Authentication | ⏳ PENDING | Google/Email auth, backend token verification middleware. |
 | **Phase 4** | Design System & Landing Page | ⏳ PENDING | Aurora Glassmorphism component library, responsive hero, feature cards. |
 | **Phase 5** | Gemini Setup | ⏳ PENDING | Google GenAI SDK wrapper, Pydantic JSON mode, retry & fallback logic. |

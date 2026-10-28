@@ -14,6 +14,7 @@ async def test_health_check_endpoint():
         assert data["app_name"] == "InterviewIQ API"
         assert "timestamp" in data
         assert data["services"]["api"] == "healthy"
+        assert "database" in data["services"]
 
 
 @pytest.mark.asyncio

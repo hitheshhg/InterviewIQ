@@ -21,7 +21,11 @@ interface HealthData {
   timestamp: string;
   services: {
     api: string;
-    database: string;
+    database: {
+      status: string;
+      latency_ms: number | null;
+      error?: string;
+    } | string;
     gemini: string;
   };
 }
@@ -79,7 +83,7 @@ export const App: React.FC = () => {
             <div>
               <span className="text-xl font-bold tracking-tight aurora-gradient-text">InterviewIQ</span>
               <span className="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium">
-                Phase 1 Active
+                Phase 2 Active
               </span>
             </div>
           </div>
@@ -166,16 +170,21 @@ export const App: React.FC = () => {
                     <span className="font-medium text-white">{health.app_name}</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-white/5 border border-white/5">
-                    <span className="text-slate-400 block mb-0.5">Version</span>
-                    <span className="font-mono text-cyan-300">{health.version}</span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5">
                     <span className="text-slate-400 block mb-0.5">Environment</span>
                     <span className="font-mono text-purple-300">{health.environment}</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-white/5 border border-white/5">
                     <span className="text-slate-400 block mb-0.5">API Status</span>
                     <span className="font-mono text-emerald-300 capitalize">{health.services.api}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/5">
+                    <span className="text-slate-400 block mb-0.5">MongoDB Atlas</span>
+                    <span className="font-mono text-emerald-400 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      {typeof health.services.database === 'object'
+                        ? `${health.services.database.status} (${health.services.database.latency_ms ?? 0}ms)`
+                        : health.services.database}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -239,3 +248,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

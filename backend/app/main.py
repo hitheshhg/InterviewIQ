@@ -1,17 +1,33 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
+from app.database import connect_to_mongo, close_mongo_connection
 from app.routes import health
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("interviewiq")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup tasks
-    print(f"[InterviewIQ] Server starting in {settings.ENVIRONMENT} mode on port {settings.PORT}...")
+    logger.info(f"[InterviewIQ] Server starting in {settings.ENVIRONMENT} mode on port {settings.PORT}...")
+    try:
+        await connect_to_mongo()
+    except Exception as e:
+        logger.error(f"[InterviewIQ] Database initialization failed on startup: {e}")
+    
     yield
+    
     # Shutdown tasks
-    print("[InterviewIQ] Server shutting down...")
+    logger.info("[InterviewIQ] Server shutting down...")
+    await close_mongo_connection()
 
 
 app = FastAPI(
