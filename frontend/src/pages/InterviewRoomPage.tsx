@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Mic,
+  MicOff,
   Send,
   Sparkles,
   Clock,
@@ -12,11 +13,19 @@ import {
   Zap,
   TrendingUp,
   FileText,
+  Volume2,
+  VolumeX,
+  Radio,
+  Sliders,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import ScoreGauge from '../components/ui/ScoreGauge';
+import AIOrb, { AIOrbState } from '../components/interview/AIOrb';
+import VoiceVisualizer from '../components/interview/VoiceVisualizer';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import {
   startInterview,
   submitAnswer,
@@ -51,7 +60,7 @@ const SAMPLE_ANSWERS: Record<string, string> = {
 };
 
 export const InterviewRoomPage: React.FC = () => {
-  // Session state
+  // Session configuration & state
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
@@ -61,6 +70,10 @@ export const InterviewRoomPage: React.FC = () => {
   const [currentDifficulty, setCurrentDifficulty] = useState<string>('medium');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(1);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionItem | null>(null);
+
+  // Voice vs Text Mode Toggle
+  const [isVoiceMode, setIsVoiceMode] = useState(true);
+  const [autoSpeakQuestion, setAutoSpeakQuestion] = useState(true);
 
   // Candidate interaction
   const [answerText, setAnswerText] = useState('');
@@ -80,6 +93,28 @@ export const InterviewRoomPage: React.FC = () => {
   >([]);
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Speech Hooks
+  const {
+    isSpeaking,
+    speak,
+    stop: stopSpeaking,
+    isSupported: isTtsSupported,
+  } = useSpeechSynthesis();
+
+  const handleSpeechFinal = useCallback((finalTranscript: string) => {
+    setAnswerText(finalTranscript);
+  }, []);
+
+  const {
+    isListening,
+    interimTranscript,
+    startListening,
+    stopListening,
+    resetTranscript,
+    isSupported: isSttSupported,
+    error: sttError,
+  } = useSpeechRecognition(handleSpeechFinal);
 
   // Auto-scroll anchor
   const feedbackRef = useRef<HTMLDivElement>(null);
@@ -102,6 +137,33 @@ export const InterviewRoomPage: React.FC = () => {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Determine living AI Orb state
+  const getOrbState = (): AIOrbState => {
+    if (submitting) return 'thinking';
+    if (isSpeaking) return 'speaking';
+    if (isListening) return 'listening';
+    return 'idle';
+  };
+
+  // Auto-speak new question when it arrives in Voice Mode
+  useEffect(() => {
+    if (sessionActive && currentQuestion && autoSpeakQuestion && isTtsSupported) {
+      // Delay slightly for smooth page transition
+      const timeout = setTimeout(() => {
+        speak(currentQuestion.question_text);
+      }, 400);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentQuestion, sessionActive, autoSpeakQuestion, isTtsSupported, speak]);
+
+  // Clean up speech on unmount
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+      stopListening();
+    };
+  }, [stopSpeaking, stopListening]);
 
   // Start interview handler
   const handleStartInterview = async () => {
@@ -126,6 +188,7 @@ export const InterviewRoomPage: React.FC = () => {
       setTurnHistory([]);
       setLatestEvaluation(null);
       setAnswerText('');
+      resetTranscript();
       setTimerSeconds(0);
       setIsTimerRunning(true);
     } catch (err: any) {
@@ -140,7 +203,12 @@ export const InterviewRoomPage: React.FC = () => {
 
   // Submit answer handler
   const handleSubmitAnswer = async () => {
-    if (!sessionId || !currentQuestion || answerText.trim().length < 5) {
+    stopListening();
+    stopSpeaking();
+
+    const fullAnswer = (answerText + (interimTranscript ? ' ' + interimTranscript : '')).trim();
+
+    if (!sessionId || !currentQuestion || fullAnswer.length < 5) {
       setErrorMessage('Please provide a substantive answer (at least 5 characters).');
       return;
     }
@@ -149,14 +217,14 @@ export const InterviewRoomPage: React.FC = () => {
     setErrorMessage(null);
     try {
       const resp = await submitAnswer(sessionId, {
-        answer_text: answerText,
+        answer_text: fullAnswer,
         duration_seconds: timerSeconds,
       });
 
       // Record turn history
       const completedTurn = {
         question: currentQuestion,
-        answerText,
+        answerText: fullAnswer,
         evaluation: resp.evaluation,
       };
       setTurnHistory((prev) => [...prev, completedTurn]);
@@ -174,6 +242,7 @@ export const InterviewRoomPage: React.FC = () => {
         setCurrentQuestion(resp.next_question);
         setCurrentQuestionIndex(resp.next_question.question_index);
         setAnswerText('');
+        resetTranscript();
         setTimerSeconds(0);
       }
 
@@ -194,6 +263,8 @@ export const InterviewRoomPage: React.FC = () => {
     if (!sessionId) return;
     if (window.confirm('Are you sure you want to end this mock interview session?')) {
       try {
+        stopListening();
+        stopSpeaking();
         setIsTimerRunning(false);
         const summary = await endInterview(sessionId);
         setSessionSummary(summary);
@@ -206,9 +277,20 @@ export const InterviewRoomPage: React.FC = () => {
 
   // Quick fill sample answer helper
   const handleFillSample = () => {
+    stopListening();
     const category = currentQuestion?.question_category || 'default';
     const sample = SAMPLE_ANSWERS[category] || SAMPLE_ANSWERS.default;
     setAnswerText(sample);
+  };
+
+  // Toggle speech recording
+  const handleToggleVoiceRecording = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      stopSpeaking(); // stop AI speech if playing
+      startListening();
+    }
   };
 
   // Difficulty badge color
@@ -234,7 +316,7 @@ export const InterviewRoomPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* =========================================================================
-          VIEW 1: SETUP SCREEN (When not currently inside an interview session)
+          VIEW 1: SETUP SCREEN
          ========================================================================= */}
       {!sessionActive && !sessionSummary && (
         <motion.div
@@ -245,13 +327,13 @@ export const InterviewRoomPage: React.FC = () => {
         >
           <div className="text-center mb-8">
             <Badge variant="cyan" pulse className="mb-3">
-              Phase 7 • AI Interview Engine
+              Phase 8 • Voice AI Mock Interview
             </Badge>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              AI Mock <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-emerald-400">Interview Room</span>
+              Voice AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-emerald-400">Mock Interview Room</span>
             </h1>
             <p className="mt-3 text-slate-300 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-              Experience dynamic, multi-turn technical interviews. Our AI adapts difficulty based on your answers and provides instant 5-dimension rubric evaluations.
+              Real-time voice conversation with our adaptive AI interviewer. Speak naturally with real-time speech transcription, natural text-to-speech, and responsive AI Orb presence.
             </p>
           </div>
 
@@ -341,6 +423,34 @@ export const InterviewRoomPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Voice Mode Preference */}
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <Mic className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Enable Hands-Free Voice Mode</div>
+                  <div className="text-[11px] text-slate-400">
+                    Interviewer speaks questions aloud and transcribes your microphone input.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVoiceMode(!isVoiceMode)}
+                className={`w-12 h-6 rounded-full transition-colors relative p-1 ${
+                  isVoiceMode ? 'bg-cyan-500' : 'bg-slate-700'
+                }`}
+              >
+                <motion.div
+                  animate={{ x: isVoiceMode ? 24 : 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className="w-4 h-4 rounded-full bg-white shadow-md"
+                />
+              </button>
+            </div>
+
             {/* Resume Context Notification */}
             <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 flex items-start gap-3 mb-6">
               <FileText className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
@@ -381,7 +491,7 @@ export const InterviewRoomPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          VIEW 2: ACTIVE INTERVIEW ROOM
+          VIEW 2: ACTIVE INTERVIEW ROOM WITH LIVING AI ORB & VOICE CONTROLS
          ========================================================================= */}
       {sessionActive && currentQuestion && (
         <div className="space-y-6">
@@ -389,7 +499,13 @@ export const InterviewRoomPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                <Mic className="w-5 h-5 animate-pulse" />
+                {isListening ? (
+                  <Mic className="w-5 h-5 animate-pulse text-emerald-400" />
+                ) : isSpeaking ? (
+                  <Volume2 className="w-5 h-5 animate-pulse text-sky-400" />
+                ) : (
+                  <Radio className="w-5 h-5 text-cyan-400" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -414,7 +530,38 @@ export const InterviewRoomPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Controls */}
             <div className="flex items-center gap-3">
+              {/* Voice / Text Mode Toggle Pill */}
+              <div className="flex items-center p-0.5 rounded-lg bg-black/40 border border-white/10 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsVoiceMode(true)}
+                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
+                    isVoiceMode
+                      ? 'bg-cyan-500 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Mic className="w-3 h-3" /> Voice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsVoiceMode(false);
+                    stopListening();
+                    stopSpeaking();
+                  }}
+                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
+                    !isVoiceMode
+                      ? 'bg-violet-500 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sliders className="w-3 h-3" /> Text
+                </button>
+              </div>
+
               {/* Timer */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-cyan-300 font-mono text-xs">
                 <Clock className="w-3.5 h-3.5" />
@@ -427,17 +574,17 @@ export const InterviewRoomPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Main Stage: Question + Answer Input */}
+          {/* Main Stage: AI Interviewer Orb + Question + Candidate Response */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left 7 Columns: Interviewer Question & Candidate Textarea */}
+            {/* Left 7 Columns: Interviewer Stage & Candidate Input */}
             <div className="lg:col-span-7 space-y-6">
-              {/* Question Card */}
-              <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60">
+              {/* Living AI Interviewer Card with AI Orb */}
+              <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                     <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
-                      AI Interviewer
+                      AI Interviewer Stage
                     </span>
                   </div>
                   <Badge variant="violet" size="sm">
@@ -445,26 +592,85 @@ export const InterviewRoomPage: React.FC = () => {
                   </Badge>
                 </div>
 
-                <h3 className="text-lg sm:text-xl font-medium text-white leading-relaxed mb-4">
-                  "{currentQuestion.question_text}"
-                </h3>
+                {/* Central Living AI Orb */}
+                <div className="py-4 flex flex-col items-center justify-center">
+                  <AIOrb
+                    state={getOrbState()}
+                    size={120}
+                    onClick={() => {
+                      if (isSpeaking) {
+                        stopSpeaking();
+                      } else {
+                        speak(currentQuestion.question_text);
+                      }
+                    }}
+                  />
 
-                {currentQuestion.context_note && (
-                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-xs text-slate-400 flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="text-slate-300">Rationale:</strong> {currentQuestion.context_note}
-                    </span>
+                  {/* Audio Controls below Orb */}
+                  <div className="mt-3 flex items-center gap-2">
+                    {isSpeaking ? (
+                      <button
+                        type="button"
+                        onClick={stopSpeaking}
+                        className="px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-1 hover:bg-rose-500/30 transition-colors"
+                      >
+                        <VolumeX className="w-3.5 h-3.5" /> Stop Voice
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => speak(currentQuestion.question_text)}
+                        className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs flex items-center gap-1 hover:bg-cyan-500/30 transition-colors"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" /> Replay Question
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setAutoSpeakQuestion(!autoSpeakQuestion)}
+                      className={`px-2.5 py-1 rounded-full border text-[11px] transition-colors ${
+                        autoSpeakQuestion
+                          ? 'bg-white/10 border-white/20 text-slate-200'
+                          : 'bg-transparent border-white/5 text-slate-500'
+                      }`}
+                    >
+                      Auto-Read: {autoSpeakQuestion ? 'ON' : 'OFF'}
+                    </button>
                   </div>
-                )}
+                </div>
+
+                {/* Formatted Question Text */}
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 mt-2">
+                  <h3 className="text-base sm:text-lg font-medium text-white leading-relaxed">
+                    "{currentQuestion.question_text}"
+                  </h3>
+
+                  {currentQuestion.context_note && (
+                    <div className="mt-3 pt-3 border-t border-white/5 flex items-start gap-2 text-xs text-slate-400">
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong className="text-slate-300">Context:</strong> {currentQuestion.context_note}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </Card>
 
               {/* Candidate Response Card */}
               <Card padding="lg" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                    Your Response (Text Mode)
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Your Response
+                    </label>
+                    {isVoiceMode && isListening && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        Transcribing Voice Live
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={handleFillSample}
@@ -475,38 +681,116 @@ export const InterviewRoomPage: React.FC = () => {
                   </button>
                 </div>
 
-                <textarea
-                  value={answerText}
-                  onChange={(e) => setAnswerText(e.target.value)}
-                  placeholder="Articulate your technical response here. Describe architecture, tradeoffs, design patterns, and edge cases..."
-                  rows={6}
-                  className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50 leading-relaxed resize-y"
-                />
+                {/* Voice Mode Mic Banner & Visualizer */}
+                {isVoiceMode && (
+                  <div className="mb-3 p-3.5 rounded-xl bg-black/50 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={handleToggleVoiceRecording}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                          isListening
+                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50 animate-pulse'
+                            : 'bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300'
+                        }`}
+                        title={isListening ? 'Click to stop recording' : 'Click to start speaking'}
+                      >
+                        {isListening ? (
+                          <MicOff className="w-6 h-6" />
+                        ) : (
+                          <Mic className="w-6 h-6 animate-pulse" />
+                        )}
+                      </button>
+                      <div>
+                        <div className="text-xs font-bold text-white">
+                          {isListening ? 'Microphone Active' : 'Voice Input Standby'}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {isListening
+                            ? 'Speak now — audio is transcribed into your response.'
+                            : isSttSupported
+                            ? 'Click microphone to answer via voice.'
+                            : 'Browser voice recognition not detected; type in Text Mode.'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dynamic Audio Visualizer */}
+                    <VoiceVisualizer
+                      isActive={isListening || isSpeaking}
+                      barCount={18}
+                      mode={isSpeaking ? 'interviewer' : 'user'}
+                      className="w-full sm:w-48"
+                    />
+                  </div>
+                )}
+
+                {/* Response Textarea / Live Transcript */}
+                <div className="relative">
+                  <textarea
+                    value={answerText}
+                    onChange={(e) => setAnswerText(e.target.value)}
+                    placeholder={
+                      isVoiceMode
+                        ? 'Click the microphone above to speak your response, or type directly here...'
+                        : 'Articulate your technical response here. Describe architecture, tradeoffs, design patterns, and edge cases...'
+                    }
+                    rows={6}
+                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50 leading-relaxed resize-y font-sans"
+                  />
+
+                  {/* Interim Real-time speech stream overlay */}
+                  {interimTranscript && (
+                    <div className="mt-1 px-3 py-1.5 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-emerald-300 text-xs italic">
+                      Transcribing: "{interimTranscript}"
+                    </div>
+                  )}
+                </div>
+
+                {sttError && (
+                  <div className="mt-2 p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {sttError}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
                   <span className="text-xs text-slate-400">
                     {answerText.trim() ? answerText.trim().split(/\s+/).length : 0} words • {answerText.length} characters
                   </span>
 
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={handleSubmitAnswer}
-                    disabled={submitting || answerText.trim().length < 5}
-                    className="flex items-center gap-2"
-                  >
-                    {submitting ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Evaluating Turn...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Submit Answer
-                      </>
+                  <div className="flex items-center gap-2">
+                    {isListening && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={stopListening}
+                        className="text-xs"
+                      >
+                        Finish Speaking
+                      </Button>
                     )}
-                  </Button>
+
+                    <Button
+                      variant="primary"
+                      size="md"
+                      onClick={handleSubmitAnswer}
+                      disabled={submitting || answerText.trim().length < 5}
+                      className="flex items-center gap-2"
+                    >
+                      {submitting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Evaluating Turn...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Submit Response
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {errorMessage && (
@@ -614,7 +898,7 @@ export const InterviewRoomPage: React.FC = () => {
                   <Sparkles className="w-8 h-8 text-slate-600 mx-auto mb-3" />
                   <h4 className="text-sm font-semibold text-slate-400">Waiting for First Response</h4>
                   <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
-                    Submit your answer to Question 1 to see real-time rubric scores and adaptive question updates.
+                    Answer Question 1 via voice or text to see real-time rubric scores and adaptive question updates.
                   </p>
                 </Card>
               )}

@@ -233,3 +233,4 @@ async def interview_websocket_endpoint(
             await websocket.close()
         except Exception:
             pass
+

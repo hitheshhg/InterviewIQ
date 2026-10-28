@@ -218,3 +218,4 @@ async def test_interview_api_flow_with_mock_auth():
             assert end_data["session_id"] == session_id
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
