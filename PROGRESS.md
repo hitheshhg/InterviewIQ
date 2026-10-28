@@ -13,8 +13,8 @@
 | :--- | :--- | :--- | :--- |
 | **Phase 0** | Discovery & Plan | ✅ COMPLETED | Monorepo structure, DB schemas, API specs, reference repo analysis approved. |
 | **Phase 1** | Environment & Skeleton | ✅ COMPLETED | FastAPI backend operational with `/health`, Vite + React + TS with Aurora theme, automated tests passing. |
-| **Phase 2** | MongoDB Atlas Setup | 🔄 READY TO START | Manual Atlas cluster setup, Motor async client, collections & indexes. |
-| **Phase 3** | Firebase Authentication | ⏳ PENDING | Google/Email auth, backend token verification middleware. |
+| **Phase 2** | MongoDB Atlas Setup | ✅ COMPLETED | Motor async client, automated indexes on all 5 collections, live `/health` ping verified (latency ~109ms). |
+| **Phase 3** | Firebase Authentication | 🔄 READY TO START | Google OAuth + Email/Password, Firebase Admin backend token verification middleware. |
 | **Phase 4** | Design System & Landing Page | ⏳ PENDING | Aurora Glassmorphism component library, responsive hero, feature cards. |
 | **Phase 5** | Gemini Setup | ⏳ PENDING | Google GenAI SDK wrapper, Pydantic JSON mode, retry & fallback logic. |
 | **Phase 6** | Resume Upload & ATS Engine | ⏳ PENDING | PDF/DOCX parser, deterministic ATS scoring + Gemini qualitative feedback. |
