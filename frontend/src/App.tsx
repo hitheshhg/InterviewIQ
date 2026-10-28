@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { FileText, Mic, Map, LayoutDashboard } from 'lucide-react';
+import { Mic, Map, LayoutDashboard } from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { LandingPage } from './pages/LandingPage';
+import { ResumeAnalyzerPage } from './pages/ResumeAnalyzerPage';
 import Card from './components/ui/Card';
 import Button from './components/ui/Button';
 
@@ -55,17 +56,7 @@ export const App: React.FC = () => {
             <main>
               <Routes>
                 <Route path="/" element={<LandingPage onOpenAuth={() => setAuthModalOpen(true)} />} />
-                <Route
-                  path="/analyzer"
-                  element={
-                    <ModulePlaceholder
-                      title="ATS Resume Scanner & Gap Analysis"
-                      phase="Phase 6 Pipeline"
-                      icon={<FileText className="w-6 h-6" />}
-                      description="Upload PDF/DOCX resumes, compute rule-based ATS keyword density, format completeness, and receive Gemini feedback."
-                    />
-                  }
-                />
+                <Route path="/analyzer" element={<ResumeAnalyzerPage />} />
                 <Route
                   path="/interview"
                   element={

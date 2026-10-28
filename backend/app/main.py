@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
 from app.dependencies import init_firebase_admin
-from app.routes import health, auth, gemini_test
+from app.routes import health, auth, gemini_test, resume
 
 # Setup logging
 logging.basicConfig(
@@ -56,6 +56,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(gemini_test.router)
+app.include_router(resume.router)
 
 
 @app.get("/")
