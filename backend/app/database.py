@@ -77,6 +77,10 @@ async def init_db_indexes():
     await db_manager.db.reports.create_index("user_id")
     await db_manager.db.reports.create_index([("created_at", -1)])
 
+    # 6. resume_versions collection: unique id, compound on (user_id, created_at)
+    await db_manager.db.resume_versions.create_index("id", unique=True)
+    await db_manager.db.resume_versions.create_index([("user_id", 1), ("created_at", -1)])
+
     logger.info("[Database] Database indexes created successfully.")
 
 

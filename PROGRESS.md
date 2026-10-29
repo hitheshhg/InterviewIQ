@@ -24,15 +24,17 @@
 | **Phase 10** | Hardening & Testing | ✅ COMPLETED | SlowAPI rate limiting (IP & token bucket), React ErrorBoundary with Aurora theme & recovery UI, end-to-end integration test (`test_e2e_flow.py`) covering complete ATS $\to$ Voice Interview $\to$ Report $\to$ Roadmap pipeline, 25/25 tests passing. |
 | **Phase 11** | Deployment | ✅ COMPLETED | Vercel SPA rewrites & security headers (`vercel.json`), production multi-stage Python 3.12 Dockerfile, Render Blueprint (`render.yaml`), Docker Compose local production stack, and comprehensive `DEPLOYMENT.md` guide. |
 | **Phase 12** | Documentation & Viva Prep | ✅ COMPLETED | 25 Exhaustive technical Viva Q&As covering full-stack & AI architecture, 5-minute evaluator demo script, complete architecture documentation in `VIVA_PREP.md`, and updated `README.md`. |
-| **Change Request v2** | Streamlined & Simplified Platform | ✅ COMPLETED | Single-screen minimal landing (`/`), strict token verification on all AI/API endpoints (401 on unauthenticated), left sidebar + topbar app shell, mobile bottom tab bar, personalized greeting & empty state on `/dashboard`, Google photo avatar with initials fallback (`referrerPolicy="no-referrer"`), `/profile` view, global text reduction ($\le 4$ words titles, $\le 12$ words helper text, 1-3 words buttons, hover tooltips), preserved AI Orb & ScoreGauge, and per-user AI rate limiting with friendly error handling. |
+| **Change Request v2** | Streamlined & Simplified Platform | ✅ COMPLETED | Single-screen minimal landing (`/`), strict token verification on all AI/API endpoints (401 on unauthenticated), top floating translucent navbar, personalized greeting & empty state on `/dashboard`, Google photo avatar with initials fallback (`referrerPolicy="no-referrer"`), `/profile` view, global text reduction ($\le 4$ words titles, $\le 12$ words helper text, 1-3 words buttons, hover tooltips), preserved AI Orb & ScoreGauge, and per-user AI rate limiting with friendly error handling. |
+| **Phase R0** | Resume Studio: Plan & Discovery | ✅ COMPLETED | Reference repo analysis, canonical Resume schema design, API contract, risk mitigations, approved. |
+| **Phase R1** | Resume Studio: Model & Parsing | ✅ COMPLETED | Canonical Pydantic & TS schemas, PDF/DOCX extraction with scanned PDF image guard, Gemini structured parsing with heuristic fallback, MongoDB Atlas versioned storage (`resume_versions`), 7/7 automated tests passing. |
 
 ---
 
-## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 Delivered)
+## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R1 Delivered)
 
 - **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 28/28 automated tests passing across auth, data isolation, ATS, interview, report, and E2E suites.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~14s).
+- **Automated Tests:** 35/35 automated tests passing across auth, data isolation, ATS, interview, report, E2E, and Resume Studio parser suites.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5.6s).
 - **Backend API:** FastAPI running with live MongoDB Atlas connection and Google Gemini AI failover.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).
 - **Security & Quota:** Strict Firebase ID token verification and per-user AI rate limiting (friendly 429 handler).
