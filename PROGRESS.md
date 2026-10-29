@@ -33,14 +33,15 @@
 | **Phase R5** | Resume Studio: Multi-JD Comparison | ✅ COMPLETED | Parallel multi-JD matching engine (`multi_jd_comparator`), in-memory caching, match rankings with #1 Best Fit badge, cross-role Skill Matrix Heatmap table, common gap diagnostics for study list, Recharts multi-role factor bar comparison, `MultiJDModal` with 1-click sample role loader, 7/7 tests passing. |
 | **Phase R6** | Resume Studio: One-Click Truthful Tailoring | ✅ COMPLETED | Algorithmic front-loading of JD-matched skills and relevant achievement bullets, target role summary synthesis, Truthful AI evidence checking (`has_unverified_claims` guard), `TailoringModal` with side-by-side diffs and projected ATS score gains, 6/6 tests passing (84/84 platform total). |
 | **Phase R7** | Resume Studio: Versions, Dashboard & History | ✅ COMPLETED | Version management drawer (`ResumeVersionsModal`), inline version renaming, restore/duplication, side-by-side version comparator (`VersionCompareModal`), multi-JD comparison history tracking, and Dashboard ATS growth area chart & role comparison integration, 7/7 tests passing (91/91 platform total). |
+| **Phase R8** | Resume Studio: Platform Bridges | ✅ COMPLETED | Platform integration connecting Resume Studio to Interview Room & Career Roadmap: weak claims and unsubstantiated skills feed dynamic interview question seeds into `session_manager.start_session`, multi-JD common gaps trigger targeted 4-milestone roadmap synthesis (`POST /roadmap/generate-from-gaps`), 'Practice Weak Spots' and 'Generate Roadmap' UI bridges, 7/7 tests passing (98/98 platform total). |
 
 ---
 
-## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R7 Delivered)
+## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R8 Delivered)
 
 - **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 91/91 automated tests passing across auth, data isolation, ATS, interview, report, E2E, parser, scoring engine, assist, builder, export, multi-JD comparator, tailor, and version management suites.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~6.0s).
+- **Automated Tests:** 98/98 automated tests passing across auth, data isolation, ATS, interview, report, E2E, parser, scoring engine, assist, builder, export, multi-JD comparator, tailor, versions, and platform bridge suites.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5.9s).
 
 - **Backend API:** FastAPI running with live MongoDB Atlas connection and Google Gemini AI failover.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).

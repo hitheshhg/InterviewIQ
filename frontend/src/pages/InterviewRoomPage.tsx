@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Mic,
@@ -59,10 +60,20 @@ const SAMPLE_ANSWERS: Record<string, string> = {
 };
 
 export const InterviewRoomPage: React.FC = () => {
+  const location = useLocation();
+  const routeState = (location.state || {}) as {
+    questionSeeds?: string[];
+    targetRole?: string;
+    seedItems?: any[];
+  };
+
   // Session configuration & state
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [targetRole, setTargetRole] = useState('Full Stack Developer');
+  const [targetRole, setTargetRole] = useState(routeState.targetRole || 'Full Stack Developer');
+  const [targetedPracticeSeeds, setTargetedPracticeSeeds] = useState<string[] | null>(
+    routeState.questionSeeds && routeState.questionSeeds.length > 0 ? routeState.questionSeeds : null
+  );
   const [customRole, setCustomRole] = useState('');
   const [totalQuestions, setTotalQuestions] = useState(5);
   const [initialDifficulty, setInitialDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
@@ -174,6 +185,10 @@ export const InterviewRoomPage: React.FC = () => {
         target_role: selectedRole,
         total_questions: totalQuestions,
         initial_difficulty: initialDifficulty,
+        question_seeds:
+          targetedPracticeSeeds && targetedPracticeSeeds.length > 0
+            ? targetedPracticeSeeds
+            : undefined,
         resume_text:
           'Candidate with experience in Python, FastAPI, React, TypeScript, and MongoDB Atlas. Major project: InterviewIQ AI Platform.',
       });
@@ -338,6 +353,37 @@ export const InterviewRoomPage: React.FC = () => {
               <Sparkles className="w-5 h-5 text-cyan-400" />
               Configure Interview Session
             </h2>
+
+            {/* Targeted Practice Banner if seeds present */}
+            {targetedPracticeSeeds && targetedPracticeSeeds.length > 0 && (
+              <div className="mb-6 p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1 rounded-lg bg-cyan-500/20 text-cyan-300 mt-0.5">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Targeted Practice Active
+                      </h4>
+                      <Badge variant="cyan" size="sm">
+                        {targetedPracticeSeeds.length} Resume Seed{targetedPracticeSeeds.length > 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-cyan-200/90 mt-1">
+                      First question will probe your weakest resume claim or missing skill.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTargetedPracticeSeeds(null)}
+                  className="text-xs text-slate-400 hover:text-white underline shrink-0 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
 
             {/* Target Role Selector */}
             <div className="mb-6">

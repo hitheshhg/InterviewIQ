@@ -165,13 +165,21 @@ class InterviewSessionManager:
         if not resume_context:
             resume_context = f"Candidate interviewing for {request.target_role}. Relevant modern tech stack and projects."
 
+        # Incorporate targeted resume/JD seeds if provided
+        if request.question_seeds and len(request.question_seeds) > 0:
+            seeds_formatted = "\n".join(f"- {s}" for s in request.question_seeds[:3])
+            resume_context += (
+                f"\n\nTargeted Candidate Improvement Seeds:\n{seeds_formatted}\n"
+                "Priority Directive: Formulate Question 1 directly probing one of these weak resume claims, unsubstantiated skills, or missing job requirements."
+            )
+
         # 2. Generate Question 1 via Gemini
         first_question: Optional[QuestionItem] = None
         try:
             start_template = load_prompt_template("interview_start.txt")
             prompt = start_template.format(
                 target_role=request.target_role,
-                resume_context=resume_context[:1500],
+                resume_context=resume_context[:1800],
                 job_description=(request.job_description or "General industry standards")[:1000],
                 total_questions=request.total_questions,
                 difficulty=request.initial_difficulty
@@ -190,17 +198,28 @@ class InterviewSessionManager:
             logger.info(f"[SessionManager] Generated Q1 via {model_used} in {latency}ms")
         except Exception as e:
             logger.warning(f"[SessionManager] Gemini Q1 generation failed ({e}), using curated role fallback.")
-            fallbacks = ROLE_FALLBACK_QUESTIONS.get("default", [])
-            fb = fallbacks[0]
-            first_question = QuestionItem(
-                question_id=str(uuid.uuid4()),
-                question_index=1,
-                question_text=fb["text"],
-                question_category=fb["category"],
-                difficulty=request.initial_difficulty,
-                context_note=fb["context_note"],
-                sample_answer_hint=fb["hint"]
-            )
+            if request.question_seeds and len(request.question_seeds) > 0:
+                first_question = QuestionItem(
+                    question_id=str(uuid.uuid4()),
+                    question_index=1,
+                    question_text=request.question_seeds[0],
+                    question_category="project_deep_dive",
+                    difficulty=request.initial_difficulty,
+                    context_note="Targeted question probing candidate's weakest resume claim or missing requirement.",
+                    sample_answer_hint="Provide concrete production details, system architecture choices, and quantifiable impact."
+                )
+            else:
+                fallbacks = ROLE_FALLBACK_QUESTIONS.get("default", [])
+                fb = fallbacks[0]
+                first_question = QuestionItem(
+                    question_id=str(uuid.uuid4()),
+                    question_index=1,
+                    question_text=fb["text"],
+                    question_category=fb["category"],
+                    difficulty=request.initial_difficulty,
+                    context_note=fb["context_note"],
+                    sample_answer_hint=fb["hint"]
+                )
 
         # 3. Create Session Record
         session_doc = {
@@ -210,7 +229,9 @@ class InterviewSessionManager:
             "job_description": request.job_description,
             "resume_id": request.resume_id,
             "resume_context": resume_context[:2000],
+            "question_seeds": request.question_seeds or [],
             "total_questions": request.total_questions,
+
             "current_question_index": 1,
             "current_difficulty": request.initial_difficulty,
             "status": "in_progress",

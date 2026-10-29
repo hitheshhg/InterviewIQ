@@ -355,6 +355,31 @@ export interface ResumeVersionTrendItem {
   role: string;
 }
 
+export interface InterviewSeedItem {
+  id: string;
+  seed_type: 'unsubstantiated_skill' | 'weak_claim' | 'missing_jd_skill';
+  topic: string;
+  seed_prompt: string;
+  reason: string;
+}
+
+export interface GenerateSeedsRequest {
+  resume: CanonicalResume;
+  job_description?: string;
+  target_role?: string;
+}
+
+export interface GenerateSeedsResponse {
+  seeds: InterviewSeedItem[];
+  target_role: string;
+  total_seeds: number;
+}
+
+export interface GenerateRoadmapFromGapsRequest {
+  target_role: string;
+  common_gaps: string[];
+}
+
 
 
 

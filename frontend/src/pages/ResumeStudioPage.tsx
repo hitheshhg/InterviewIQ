@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CanonicalResume,
   TemplateId,
@@ -7,6 +8,7 @@ import {
   SectionKey,
   ATSScoreResponse,
   CreateVersionRequest,
+  GenerateSeedsResponse,
 } from '../types/resumeStudio';
 import { ResumeFormEditor } from '../components/resume/ResumeFormEditor';
 import { ResumePaperPreview } from '../components/resume/ResumePaperPreview';
@@ -100,6 +102,7 @@ const INITIAL_RESUME: CanonicalResume = {
 };
 
 export const ResumeStudioPage: React.FC = () => {
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Resume State with Undo / Redo History Stack
@@ -183,6 +186,33 @@ export const ResumeStudioPage: React.FC = () => {
   const handleOpenCompareFromModal = (id1: string, id2: string) => {
     setCompareVersionIds({ id1, id2 });
     setIsCompareModalOpen(true);
+  };
+
+  const [practicingSeeds, setPracticingSeeds] = useState<boolean>(false);
+
+  const handlePracticeWeakSpots = async () => {
+    setPracticingSeeds(true);
+    try {
+      const res = await api.post<GenerateSeedsResponse>('/api/v1/resume-studio/interview-seeds', {
+        resume: currentResume,
+        job_description: jobDescription || undefined,
+        target_role: tailorRole || 'Full Stack Engineer',
+      });
+      const seeds = res.data.seeds || [];
+      const seedPrompts = seeds.map((s) => s.seed_prompt);
+      navigate('/interview', {
+        state: {
+          questionSeeds: seedPrompts,
+          targetRole: res.data.target_role || tailorRole || 'Full Stack Engineer',
+          seedItems: seeds,
+        },
+      });
+    } catch (err: any) {
+      console.error('Failed to extract interview seeds:', err);
+      navigate('/interview');
+    } finally {
+      setPracticingSeeds(false);
+    }
   };
 
 
@@ -539,6 +569,8 @@ export const ResumeStudioPage: React.FC = () => {
                 setTailorJDText(jobDescription);
                 setIsTailoringModalOpen(true);
               }}
+              onPracticeWeakSpots={handlePracticeWeakSpots}
+              isPracticing={practicingSeeds}
             />
           )}
         </div>

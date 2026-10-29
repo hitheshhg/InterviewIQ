@@ -35,6 +35,7 @@ export interface StartInterviewRequest {
   resume_text?: string;
   total_questions?: number;
   initial_difficulty?: 'easy' | 'medium' | 'hard';
+  question_seeds?: string[];
 }
 
 export interface StartInterviewResponse {

@@ -28,6 +28,7 @@ from app.models.version_compare import (
     VersionComparisonResponse,
     UpdateVersionLabelRequest,
 )
+from app.models.platform_bridges import GenerateSeedsRequest, GenerateSeedsResponse
 from app.services.resume_parser import resume_studio_parser
 from app.services.scoring_engine import scoring_engine
 from app.services.resume_assist import resume_assist_service
@@ -35,6 +36,8 @@ from app.services.resume_exporter import resume_exporter
 from app.services.multi_jd_comparator import multi_jd_comparator
 from app.services.resume_tailor import resume_tailor_service
 from app.services.version_manager import version_manager_service
+from app.services.platform_bridges import platform_bridges_service
+
 
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
@@ -459,6 +462,33 @@ async def list_recent_comparisons(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list comparisons: {str(e)}",
         )
+
+
+@router.post("/interview-seeds", response_model=GenerateSeedsResponse)
+async def extract_interview_seeds(
+    payload: GenerateSeedsRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Generate targeted technical interview question seeds challenging the candidate's:
+    1. Unsubstantiated skills (listed in skills catalog with no project/experience bullets)
+    2. Weak phrasing or unquantified resume claims
+    3. Missing job description requirements
+    """
+    try:
+        seeds_resp = platform_bridges_service.generate_interview_seeds(
+            resume=payload.resume,
+            job_description=payload.job_description,
+            target_role=payload.target_role,
+        )
+        return seeds_resp
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Error generating interview seeds: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate interview seeds: {str(e)}",
+        )
+
 
 
 

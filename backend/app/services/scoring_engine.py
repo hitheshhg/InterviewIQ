@@ -94,8 +94,9 @@ COMMON_TECH_ENTITIES: Set[str] = {
     "sql", "nosql", "react", "next.js", "vue", "angular", "node.js", "fastapi", "django",
     "flask", "express", "spring boot", "postgresql", "mongodb", "redis", "mysql",
     "docker", "kubernetes", "aws", "gcp", "azure", "git", "linux", "ci/cd", "restful apis",
-    "graphql", "microservices", "system design", "tailwind css", "html", "css",
+    "graphql", "microservices", "system design", "tailwind css", "html", "css", "kafka", "apache kafka",
 }
+
 
 ALL_TECH_KEYWORDS: List[str] = sorted(
     list(COMMON_TECH_ENTITIES | set(SYNONYM_MAP.keys())),
@@ -448,6 +449,13 @@ class ATSScoringEngine:
             tips.append("Keep bullets concise (15-25 words) and ensure all dates follow standard formats.")
 
         return final_score, weak_lines, tips
+
+    def detect_weak_lines(self, resume: CanonicalResume) -> List[WeakLineItem]:
+        """Aggregate weak lines across quantified metrics, action verbs, and formatting."""
+        _, quant_weak, _ = self.evaluate_quantified_achievements(resume)
+        _, verb_weak, _ = self.evaluate_action_verbs_and_language(resume)
+        _, fmt_weak, _ = self.evaluate_formatting_and_parseability(resume)
+        return quant_weak[:3] + verb_weak[:3] + fmt_weak[:2]
 
     def calculate_full_ats_score(
         self,

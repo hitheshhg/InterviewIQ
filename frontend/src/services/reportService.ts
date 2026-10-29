@@ -123,6 +123,17 @@ export const getLatestRoadmap = async (): Promise<PersonalizedRoadmap> => {
   return response.data;
 };
 
+export const generateRoadmapFromGaps = async (
+  targetRole: string,
+  commonGaps: string[]
+): Promise<PersonalizedRoadmap> => {
+  const response = await api.post<PersonalizedRoadmap>('/api/v1/roadmap/generate-from-gaps', {
+    target_role: targetRole,
+    common_gaps: commonGaps,
+  });
+  return response.data;
+};
+
 export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
   const response = await api.get<DashboardMetrics>('/api/v1/dashboard/metrics');
   return response.data;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   Layers,
@@ -11,6 +12,7 @@ import {
   AlertTriangle,
   XCircle,
   BookOpen,
+  Compass,
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,6 +33,7 @@ import {
   MultiJDCompareResponse,
 } from '../../types/resumeStudio';
 import { api } from '../../services/api';
+import { generateRoadmapFromGaps } from '../../services/reportService';
 
 interface MultiJDModalProps {
   isOpen: boolean;
@@ -128,6 +131,25 @@ export const MultiJDModal: React.FC<MultiJDModalProps> = ({
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const navigate = useNavigate();
+  const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
+
+  const handleGenerateRoadmap = async () => {
+    if (!compareResult || compareResult.common_gaps.length === 0) return;
+    setGeneratingRoadmap(true);
+    try {
+      const targetRole = compareResult.rankings[0]?.title || 'Software Engineer';
+      const roadmap = await generateRoadmapFromGaps(targetRole, compareResult.common_gaps);
+      onClose();
+      navigate('/roadmap', { state: { roadmap } });
+    } catch (err: any) {
+      console.error('Failed to generate roadmap from common gaps:', err);
+      setErrorMsg(err.response?.data?.detail || 'Failed to generate roadmap from common gaps.');
+    } finally {
+      setGeneratingRoadmap(false);
     }
   };
 
@@ -331,11 +353,24 @@ export const MultiJDModal: React.FC<MultiJDModalProps> = ({
               {/* 2. Common Gaps Alert Panel */}
               {compareResult.common_gaps.length > 0 && (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
-                    <h5 className="text-xs font-bold uppercase tracking-wider text-amber-300">
-                      Common Skill Gaps ({compareResult.common_gaps.length})
-                    </h5>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                        Common Skill Gaps ({compareResult.common_gaps.length})
+                      </h5>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleGenerateRoadmap}
+                      disabled={generatingRoadmap}
+                      className="text-xs py-1 px-2.5 flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-cyan-500 hover:from-amber-600 hover:to-cyan-600 text-white shadow-md shadow-amber-500/20"
+                      title="Build milestone career roadmap for these missing skills"
+                    >
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>{generatingRoadmap ? 'Generating...' : 'Generate Roadmap'}</span>
+                    </Button>
                   </div>
                   <p className="text-[11px] text-slate-300">
                     These skills are required across multiple target roles but missing from your profile.

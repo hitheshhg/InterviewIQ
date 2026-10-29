@@ -22,9 +22,17 @@ interface ATSScorePanelProps {
   scoreData: ATSScoreResponse | null;
   loading?: boolean;
   onOpenTailor?: () => void;
+  onPracticeWeakSpots?: () => void;
+  isPracticing?: boolean;
 }
 
-export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({ scoreData, loading, onOpenTailor }) => {
+export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
+  scoreData,
+  loading,
+  onOpenTailor,
+  onPracticeWeakSpots,
+  isPracticing,
+}) => {
   const [whyScoreOpen, setWhyScoreOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'skills' | 'weak_lines'>('skills');
 
@@ -267,6 +275,22 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({ scoreData, loading
                     </div>
                   </div>
                 )}
+
+                {missing_skills.length > 0 && onPracticeWeakSpots && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between mt-2">
+                    <span className="text-[11px] text-amber-300">Test knowledge on missing skills</span>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={onPracticeWeakSpots}
+                      disabled={isPracticing}
+                      className="text-xs py-0.5 px-2 bg-amber-600 hover:bg-amber-500 text-white shrink-0"
+                      title="Start mock interview targeting these resume gaps"
+                    >
+                      {isPracticing ? 'Preparing...' : 'Practice Weak Spots'}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -280,17 +304,55 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({ scoreData, loading
                 <CheckCircle2 className="w-3.5 h-3.5" /> No weak phrases or length issues detected.
               </p>
             ) : (
-              weak_lines.slice(0, 5).map((wl, i) => (
-                <div key={i} className="p-2 rounded-lg bg-white/[0.02] border border-white/5 text-[11px] space-y-1">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span className="font-semibold text-rose-400 capitalize">{wl.issue_type.replace('_', ' ')}</span>
-                    <span>{wl.section}</span>
+              <>
+                {weak_lines.slice(0, 5).map((wl, i) => (
+                  <div key={i} className="p-2 rounded-lg bg-white/[0.02] border border-white/5 text-[11px] space-y-1">
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="font-semibold text-rose-400 capitalize">{wl.issue_type.replace('_', ' ')}</span>
+                      <span>{wl.section}</span>
+                    </div>
+                    <p className="text-slate-300 italic">"{wl.original_line.slice(0, 100)}..."</p>
+                    <p className="text-cyan-300 text-[10px] leading-snug">{wl.recommendation}</p>
                   </div>
-                  <p className="text-slate-300 italic">"{wl.original_line.slice(0, 100)}..."</p>
-                  <p className="text-cyan-300 text-[10px] leading-snug">{wl.recommendation}</p>
-                </div>
-              ))
+                ))}
+                {onPracticeWeakSpots && (
+                  <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-between mt-2">
+                    <span className="text-[11px] text-rose-300">Defend claims in a mock interview</span>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={onPracticeWeakSpots}
+                      disabled={isPracticing}
+                      className="text-xs py-0.5 px-2 bg-rose-600 hover:bg-rose-500 text-white shrink-0"
+                      title="Start mock interview targeting these resume gaps"
+                    >
+                      {isPracticing ? 'Preparing...' : 'Practice Weak Spots'}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
+          </div>
+        )}
+
+        {/* Overall Bridge Action */}
+        {onPracticeWeakSpots && (
+          <div className="pt-3 border-t border-white/10 mt-3 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400 flex items-center gap-1">
+              <Target className="w-3.5 h-3.5 text-cyan-400" />
+              Targeted Interview
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onPracticeWeakSpots}
+              disabled={isPracticing}
+              className="text-xs py-1 px-2.5 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 flex items-center gap-1"
+              title="Start mock interview targeting these resume gaps"
+            >
+              <Zap className="w-3 h-3 text-cyan-400" />
+              <span>{isPracticing ? 'Preparing...' : 'Practice Weak Spots'}</span>
+            </Button>
           </div>
         )}
       </Card>
