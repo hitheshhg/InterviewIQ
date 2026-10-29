@@ -17,7 +17,9 @@ from app.models.resume_studio import (
     VersionSummaryItem,
     ParseResumeResponse,
 )
+from app.models.scoring import ScoreRequest, ATSScoreResponse
 from app.services.resume_parser import resume_studio_parser
+from app.services.scoring_engine import scoring_engine
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
 
@@ -144,4 +146,29 @@ async def delete_resume_version(
             detail=f"Resume version '{version_id}' not found or already deleted.",
         )
     return {"status": "success", "message": f"Version '{version_id}' deleted."}
+
+
+@router.post("/score", response_model=ATSScoreResponse)
+async def evaluate_ats_score(
+    payload: ScoreRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Calculate deterministic, transparent ATS score across 5 weighted dimensions.
+    Returns breakdown, matched/partial/missing skills with evidence lines, and weak line recommendations.
+    """
+    try:
+        evaluation = scoring_engine.calculate_full_ats_score(
+            resume=payload.resume,
+            job_description=payload.job_description,
+            target_role=payload.target_role,
+        )
+        return evaluation
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Error scoring resume: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to calculate ATS score: {str(e)}",
+        )
+
 

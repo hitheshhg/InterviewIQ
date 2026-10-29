@@ -96,3 +96,52 @@ export interface ParseResumeResponse {
   raw_character_count: number;
 }
 
+
+export interface SkillMatchItem {
+  skill: string;
+  status: 'matched' | 'partial' | 'missing';
+  resume_evidence_line?: string;
+  category?: string;
+}
+
+export interface WeakLineItem {
+  section: string;
+  original_line: string;
+  issue_type: 'passive_phrase' | 'missing_metric' | 'too_long' | 'too_short';
+  recommendation: string;
+}
+
+export interface SectionScoreItem {
+  name: string;
+  score_percentage: number;
+  weight_percentage: number;
+  points_earned: number;
+  max_points: number;
+  tips: string[];
+}
+
+export interface ScoreBreakdown {
+  keyword_semantic_match: SectionScoreItem;
+  section_completeness: SectionScoreItem;
+  quantified_achievements: SectionScoreItem;
+  action_verbs_quality: SectionScoreItem;
+  formatting_parseability: SectionScoreItem;
+}
+
+export interface ATSScoreResponse {
+  overall_score: number;
+  is_tailored: boolean;
+  summary_verdict: string;
+  breakdown: ScoreBreakdown;
+  matched_skills: SkillMatchItem[];
+  partial_skills: SkillMatchItem[];
+  missing_skills: SkillMatchItem[];
+  weak_lines: WeakLineItem[];
+  top_action_items: string[];
+}
+
+export interface ScoreRequest {
+  resume: CanonicalResume;
+  job_description?: string;
+  target_role?: string;
+}
