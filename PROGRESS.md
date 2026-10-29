@@ -22,8 +22,8 @@
 | **Phase 8** | Voice & Real-time Experience | ✅ COMPLETED | Web Speech API SpeechRecognition (STT), SpeechSynthesis (TTS), animated multi-state AI Orb, dynamic audio visualizer, hands-free toggle. |
 | **Phase 9** | Report, Roadmap, Dashboard | ✅ COMPLETED | 5-dimension Recharts Radar chart, candidate vs L5 benchmark table, personalized algorithmic career roadmap with milestone tasks, candidate analytics dashboard with area chart trends, PDF print styling, 24/24 tests passing. |
 | **Phase 10** | Hardening & Testing | ✅ COMPLETED | SlowAPI rate limiting (IP & token bucket), React ErrorBoundary with Aurora theme & recovery UI, end-to-end integration test (`test_e2e_flow.py`) covering complete ATS $\to$ Voice Interview $\to$ Report $\to$ Roadmap pipeline, 25/25 tests passing. |
-| **Phase 11** | Deployment | 🔄 READY TO START | Vercel (frontend) + Render (backend) deployment guide. |
-| **Phase 12** | Documentation & Viva Prep | ⏳ PENDING | 25 Viva questions with answers, 5-minute demo script, architecture guide. |
+| **Phase 11** | Deployment | ✅ COMPLETED | Vercel SPA rewrites & security headers (`vercel.json`), production multi-stage Python 3.12 Dockerfile, Render Blueprint (`render.yaml`), Docker Compose local production stack, and comprehensive `DEPLOYMENT.md` guide. |
+| **Phase 12** | Documentation & Viva Prep | 🔄 READY TO START | 25 Viva questions with answers, 5-minute demo script, architecture guide. |
 
 ---
 
