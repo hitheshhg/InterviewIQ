@@ -126,6 +126,7 @@ export const ResumeStudioPage: React.FC = () => {
 
   // Right Column View Mode: 'preview' (Paper) | 'score' (ATS Breakdown)
   const [rightViewMode, setRightViewMode] = useState<'preview' | 'score'>('preview');
+  const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
 
   // Job Description for Live Tailoring Match
   const [jobDescription, setJobDescription] = useState<string>('');
@@ -441,10 +442,34 @@ export const ResumeStudioPage: React.FC = () => {
         </div>
       )}
 
+      {/* Mobile Tab Switcher (Visible only on screens < lg) */}
+      <div className="lg:hidden flex items-center justify-center p-1 rounded-xl bg-slate-900 border border-white/10 mb-4">
+        <button
+          onClick={() => setMobileTab('editor')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            mobileTab === 'editor'
+              ? 'bg-cyan-500 text-black shadow'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Form Editor
+        </button>
+        <button
+          onClick={() => setMobileTab('preview')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            mobileTab === 'preview'
+              ? 'bg-cyan-500 text-black shadow'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Paper & ATS
+        </button>
+      </div>
+
       {/* Split-Screen Studio Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Form Editor (7 Cols on LG) */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={`lg:col-span-7 space-y-4 ${mobileTab === 'editor' ? 'block' : 'hidden lg:block'}`}>
           {/* Target Job Description Collapsible Accordion */}
           <div className="bg-slate-900/70 border border-white/10 rounded-xl p-3.5">
             <div
@@ -501,7 +526,7 @@ export const ResumeStudioPage: React.FC = () => {
         </div>
 
         {/* Right Column: Live Paper Preview & ATS Score Panel (5 Cols on LG) */}
-        <div className="lg:col-span-5 sticky top-20 space-y-4">
+        <div className={`lg:col-span-5 sticky top-20 space-y-4 ${mobileTab === 'preview' ? 'block' : 'hidden lg:block'}`}>
           {/* Tab Switcher: Paper Preview vs ATS Score */}
           <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-xl border border-white/10">
             <div className="flex items-center gap-1">

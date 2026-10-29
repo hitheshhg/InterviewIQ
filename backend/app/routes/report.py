@@ -102,7 +102,9 @@ async def get_latest_candidate_roadmap(
 
 
 @router.post("/roadmap/generate-from-gaps", response_model=PersonalizedRoadmap)
+@limiter.limit("10/minute")
 async def generate_candidate_roadmap_from_gaps(
+    request: Request,
     payload: GenerateRoadmapFromGapsRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):

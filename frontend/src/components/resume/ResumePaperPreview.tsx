@@ -40,7 +40,12 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
 }) => {
   const paperRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState<number>(1);
-  const [zoomScale, setZoomScale] = useState<number>(0.95);
+  const [zoomScale, setZoomScale] = useState<number>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      return 0.65;
+    }
+    return 0.95;
+  });
 
   // Monitor DOM height to detect 1-page vs 2-page fit dynamically
   useEffect(() => {
@@ -179,7 +184,7 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
       </div>
 
       {/* Live Paper Canvas Scroll Stage */}
-      <div className="flex-1 overflow-y-auto max-h-[850px] flex justify-center p-2 sm:p-4 bg-slate-950/60 rounded-lg custom-scrollbar">
+      <div className="flex-1 overflow-x-auto overflow-y-auto max-h-[850px] flex justify-center p-2 sm:p-4 bg-slate-950/60 rounded-lg custom-scrollbar">
         <div
           style={{
             transform: `scale(${zoomScale})`,

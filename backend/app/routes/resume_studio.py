@@ -90,7 +90,9 @@ async def parse_resume_document(
 
 
 @router.post("/version", response_model=ResumeVersionDoc)
+@limiter.limit("30/minute")
 async def create_or_save_resume_version(
+    request: Request,
     payload: CreateVersionRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -168,7 +170,9 @@ async def delete_resume_version(
 
 
 @router.post("/score", response_model=ATSScoreResponse)
+@limiter.limit("60/minute")
 async def evaluate_ats_score(
+    request: Request,
     payload: ScoreRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -420,7 +424,9 @@ async def restore_resume_version(
 
 
 @router.post("/compare-versions", response_model=VersionComparisonResponse)
+@limiter.limit("30/minute")
 async def compare_resume_versions(
+    request: Request,
     payload: CompareVersionsRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -465,7 +471,9 @@ async def list_recent_comparisons(
 
 
 @router.post("/interview-seeds", response_model=GenerateSeedsResponse)
+@limiter.limit("20/minute")
 async def extract_interview_seeds(
+    request: Request,
     payload: GenerateSeedsRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):

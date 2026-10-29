@@ -30,3 +30,4 @@ class GenerateRoadmapFromGapsRequest(BaseModel):
     """Payload to construct a targeted Career Roadmap from Multi-JD common gaps."""
     target_role: str = Field("Software Engineer", description="Target role title")
     common_gaps: List[str] = Field(..., min_length=1, description="List of common skill gaps")
+
