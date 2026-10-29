@@ -4,6 +4,7 @@ from io import BytesIO
 from fastapi import UploadFile
 from httpx import ASGITransport, AsyncClient
 from app.main import app
+from app.dependencies import get_current_user
 from app.services.ats_engine import calculate_rule_based_ats, run_full_ats_analysis
 from app.services.resume_extractor import extract_text_from_file
 from app.database import connect_to_mongo, close_mongo_connection
@@ -103,10 +104,11 @@ async def test_extractor_rejects_empty_file():
 
 @pytest.mark.asyncio
 async def test_analyze_text_endpoint():
-    """Verify direct text analysis endpoint returns structured ATS results."""
+    """Verify direct text analysis endpoint requires auth and returns structured ATS results when authenticated."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post(
+        # 1. Unauthenticated request must return 401
+        unauth_response = await client.post(
             "/api/v1/resume/analyze-text",
             data={
                 "resume_text": SAMPLE_STRONG_RESUME,
@@ -114,12 +116,31 @@ async def test_analyze_text_endpoint():
                 "target_role": "Full Stack Developer",
             }
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["overall_score"] >= 70
-        assert "breakdown" in data
-        assert len(data["matched_keywords"]) > 0
-        assert len(data["actionable_tips"]) > 0
+        assert unauth_response.status_code == 401
+
+        # 2. Authenticated request succeeds with structured ATS output
+        app.dependency_overrides[get_current_user] = lambda: {
+            "uid": "test_vtu_user",
+            "firebase_uid": "test_vtu_user",
+            "email": "shreya@vtu.ac.in",
+        }
+        try:
+            response = await client.post(
+                "/api/v1/resume/analyze-text",
+                data={
+                    "resume_text": SAMPLE_STRONG_RESUME,
+                    "job_description": SAMPLE_JD,
+                    "target_role": "Full Stack Developer",
+                }
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["overall_score"] >= 70
+            assert "breakdown" in data
+            assert len(data["matched_keywords"]) > 0
+            assert len(data["actionable_tips"]) > 0
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio

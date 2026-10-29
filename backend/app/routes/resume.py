@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/resume", tags=["Resume & ATS Engine"])
 
 
 @router.post("/upload", response_model=ResumeUploadResponse)
-@limiter.limit("20/minute")
+@limiter.limit("5/minute")
 async def upload_resume(
     request: Request,
     file: UploadFile = File(...),
@@ -65,12 +65,13 @@ async def upload_resume(
 
 
 @router.post("/analyze-text", response_model=ATSAnalysisResult)
-@limiter.limit("30/minute")
+@limiter.limit("5/minute")
 async def analyze_raw_resume_text(
     request: Request,
     resume_text: str = Form(...),
     job_description: str = Form(""),
     target_role: str = Form("Full Stack Developer"),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
     Direct text analysis endpoint allowing rapid ATS evaluation of pasted resume text.

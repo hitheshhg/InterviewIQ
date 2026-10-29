@@ -197,21 +197,20 @@ export const ResumeAnalyzerPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 text-slate-100">
+    <div className="max-w-6xl mx-auto space-y-6 text-slate-100">
       
       {/* Header */}
-      <div className="text-center mb-10">
-        <Badge variant="cyan" pulse>Phase 6 Pipeline Active</Badge>
-        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight mt-3">
-          ATS Resume Scanner & <span className="aurora-gradient-text">Skill Gap Engine</span>
+      <div className="border-b border-white/10 pb-4">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+          Resume ATS Scanner
         </h1>
-        <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto mt-2 leading-relaxed">
-          Upload your resume to calculate deterministic keyword density, quantifiable impact, and section completeness, paired with Google Gemini semantic gap analysis.
+        <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          Upload your resume to evaluate keyword match.
         </p>
       </div>
 
       {/* Main Form Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         
         {/* Left Column: File Upload Area (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
@@ -219,7 +218,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
             <h3 className="text-sm font-bold text-white mb-3 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-cyan-400" />
-                Resume Document (PDF or DOCX)
+                Resume document
               </span>
               <button
                 type="button"
@@ -227,7 +226,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
                 className="text-xs text-cyan-400 hover:text-cyan-300 font-medium hover:underline flex items-center gap-1"
               >
                 <Sparkles className="w-3 h-3" />
-                Use Sample Full Stack Resume
+                Use sample
               </button>
             </h3>
 
@@ -330,7 +329,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
               onClick={handleAnalyze}
               className="w-full mt-3"
             >
-              {analyzing ? 'Computing ATS Metrics...' : 'Analyze Resume Match'}
+              {analyzing ? 'Scanning...' : 'Scan resume'}
             </Button>
           </Card>
         </div>
@@ -490,22 +489,22 @@ export const ResumeAnalyzerPage: React.FC = () => {
             </Card>
 
             {/* Gateway CTA to Mock Interview */}
-            <Card padding="lg" glow="violet" className="text-center relative overflow-hidden bg-gradient-to-r from-cyan-950/40 via-violet-950/40 to-pink-950/40 border-violet-500/30">
-              <h3 className="text-2xl font-bold text-white tracking-tight">
-                Now Put This Resume to the Test
+            <Card padding="md" glow="violet" className="text-center relative overflow-hidden bg-gradient-to-r from-cyan-950/40 via-violet-950/40 to-slate-900 border-violet-500/30">
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                Practice your interview
               </h3>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-2 leading-relaxed">
-                Step into the AI Interview Room. Gemini will ask questions directly based on your uploaded projects and target role.
+              <p className="text-xs text-slate-400 max-w-lg mx-auto mt-1">
+                Roleplay realistic questions based on your resume.
               </p>
 
-              <div className="mt-6 flex justify-center">
+              <div className="mt-4 flex justify-center">
                 <Button
-                  size="lg"
+                  size="md"
                   variant="primary"
                   icon={<Mic className="w-4 h-4" />}
                   onClick={() => window.location.href = '/interview'}
                 >
-                  Start Voice Mock Interview for {analysis.target_role}
+                  Start interview
                 </Button>
               </div>
             </Card>

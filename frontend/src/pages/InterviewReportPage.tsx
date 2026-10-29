@@ -108,12 +108,12 @@ export const InterviewReportPage: React.FC = () => {
           <div className="flex justify-center gap-3">
             <Link to="/interview">
               <Button variant="primary" size="md">
-                Launch Mock Interview
+                Start interview
               </Button>
             </Link>
             <Link to="/analyzer">
               <Button variant="secondary" size="md">
-                Scan Resume (ATS)
+                Scan resume
               </Button>
             </Link>
           </div>
@@ -144,34 +144,26 @@ export const InterviewReportPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 print:p-0 print:m-0">
+    <div className="max-w-7xl mx-auto space-y-6 print:p-0 print:m-0">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10 print:hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10 print:hidden">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="cyan" pulse size="sm">
-              Phase 9 • Evaluation Analytics
-            </Badge>
-            <span className="text-xs text-slate-400">
-              Session ID: {report.session_id.slice(0, 8)}...
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Interview Performance <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">Deep-Dive Report</span>
+            Interview Performance Report
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Target Role: <strong className="text-cyan-300">{report.target_role}</strong> • Generated on {new Date(report.created_at).toLocaleDateString()}
+            Review your interview rubric evaluation and benchmark.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link to="/roadmap">
             <Button variant="primary" size="sm" className="flex items-center gap-1.5">
-              <Map className="w-4 h-4" /> View Career Roadmap
+              <Map className="w-4 h-4" /> View roadmap
             </Button>
           </Link>
           <Button variant="secondary" size="sm" onClick={handlePrint} className="flex items-center gap-1.5">
-            <Printer className="w-4 h-4" /> Print / Save PDF
+            <Printer className="w-4 h-4" /> Save PDF
           </Button>
         </div>
       </div>

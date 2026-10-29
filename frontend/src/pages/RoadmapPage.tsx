@@ -71,7 +71,7 @@ export const RoadmapPage: React.FC = () => {
           </p>
           <Link to="/interview">
             <Button variant="primary" size="md">
-              Start Mock Interview
+              Start interview
             </Button>
           </Link>
         </Card>
@@ -88,24 +88,21 @@ export const RoadmapPage: React.FC = () => {
   const progressPct = allTasksCount > 0 ? Math.round((completedCount / allTasksCount) * 100) : 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <Badge variant="cyan" pulse size="sm" className="mb-2">
-            Phase 9 • Skill Progression Engine
-          </Badge>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Personalized <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-emerald-400">Career Roadmap</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Personalized Career Roadmap
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Role Target: <strong className="text-cyan-300">{roadmap.target_role}</strong> • Estimated Duration: {roadmap.estimated_total_weeks} Weeks
+            Milestones curated to advance your interview performance.
           </p>
         </div>
 
         <Link to="/interview">
           <Button variant="primary" size="sm" className="flex items-center gap-1.5">
-            Retest Skills in Interview Room <ArrowRight className="w-3.5 h-3.5" />
+            Start interview <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </Link>
       </div>

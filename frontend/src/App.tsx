@@ -1,49 +1,153 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
-import { Navbar } from './components/layout/Navbar';
-import { Footer } from './components/layout/Footer';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { AppShell } from './components/layout/AppShell';
 import { LandingPage } from './pages/LandingPage';
+import { DashboardPage } from './pages/DashboardPage';
 import { ResumeAnalyzerPage } from './pages/ResumeAnalyzerPage';
 import { InterviewRoomPage } from './pages/InterviewRoomPage';
 import { InterviewReportPage } from './pages/InterviewReportPage';
 import { RoadmapPage } from './pages/RoadmapPage';
-import { DashboardPage } from './pages/DashboardPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+const AuthRouteHandler: React.FC<{
+  mode: 'signin' | 'signup';
+  onOpenAuth: (m?: 'signin' | 'signup') => void;
+}> = ({ mode, onOpenAuth }) => {
+  React.useEffect(() => {
+    onOpenAuth(mode);
+  }, [mode, onOpenAuth]);
+  return <LandingPage onOpenAuth={onOpenAuth} />;
+};
 
 export const App: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+
+  const handleOpenAuth = (mode: 'signin' | 'signup' = 'signin') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
 
   return (
     <ErrorBoundary>
       <AuthProvider>
         <Router>
-        <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col justify-between selection:bg-cyan-500 selection:text-white">
-          <div>
-            <Navbar onOpenAuth={() => setAuthModalOpen(true)} />
+          <Routes>
+            {/* Public Minimal Landing Page */}
+            <Route
+              path="/"
+              element={<LandingPage onOpenAuth={handleOpenAuth} />}
+            />
 
-            <main>
-              <Routes>
-                <Route path="/" element={<LandingPage onOpenAuth={() => setAuthModalOpen(true)} />} />
-                <Route path="/analyzer" element={<ResumeAnalyzerPage />} />
-                <Route path="/interview" element={<InterviewRoomPage />} />
-                <Route path="/report" element={<InterviewReportPage />} />
-                <Route path="/report/:sessionId" element={<InterviewReportPage />} />
-                <Route path="/roadmap" element={<RoadmapPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-              </Routes>
-            </main>
-          </div>
+            {/* Direct Auth URLs opening corresponding modal tab */}
+            <Route
+              path="/signin"
+              element={
+                <AuthRouteHandler
+                  mode="signin"
+                  onOpenAuth={handleOpenAuth}
+                />
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <AuthRouteHandler
+                  mode="signup"
+                  onOpenAuth={handleOpenAuth}
+                />
+              }
+            />
 
-          <Footer />
+            {/* Protected SaaS App with Left Sidebar & Topbar */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <DashboardPage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analyzer"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <ResumeAnalyzerPage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <InterviewRoomPage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/report"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <InterviewReportPage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/report/:sessionId"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <InterviewReportPage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roadmap"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <RoadmapPage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <ProfilePage />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Authentication Dialog */}
-          <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-        </div>
-      </Router>
-    </AuthProvider>
-  </ErrorBoundary>
+            {/* Catch-all redirect to / */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+
+          {/* Authentication Modal */}
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
+            initialMode={authMode}
+          />
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

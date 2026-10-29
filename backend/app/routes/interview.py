@@ -34,7 +34,7 @@ def get_user_id(current_user: Dict[str, Any]) -> str:
 
 
 @router.post("/start", response_model=StartInterviewResponse)
-@limiter.limit("30/minute")
+@limiter.limit("10/minute")
 async def start_interview_session(
     request: Request,
     payload: StartInterviewRequest,
@@ -58,7 +58,7 @@ async def start_interview_session(
 
 
 @router.post("/{session_id}/answer", response_model=SubmitAnswerResponse)
-@limiter.limit("60/minute")
+@limiter.limit("10/minute")
 async def submit_turn_answer(
     session_id: str,
     request: Request,
@@ -139,16 +139,23 @@ async def interview_websocket_endpoint(
       {"type": "turn_result", "data": {...}}
       {"type": "session_completed", "summary": {...}}
     """
-    await websocket.accept()
+    # Authenticate token strictly via query parameter
+    if not token:
+        await websocket.close(code=1008, reason="Authentication token required.")
+        return
 
-    # Authenticate token if provided via query param or fallback to guest uid for evaluation demo
-    user_id = "ws_user"
-    if token:
-        try:
-            decoded = auth.verify_id_token(token)
-            user_id = decoded.get("uid", "ws_user")
-        except Exception as e:
-            logger.warning(f"[InterviewWS] Invalid query token, proceeding in sandbox mode: {e}")
+    try:
+        decoded = auth.verify_id_token(token)
+        user_id = decoded.get("uid")
+        if not user_id:
+            await websocket.close(code=1008, reason="Invalid token UID.")
+            return
+    except Exception as e:
+        logger.warning(f"[InterviewWS] Invalid query token: {e}")
+        await websocket.close(code=1008, reason="Invalid authentication token.")
+        return
+
+    await websocket.accept()
 
     try:
         # Send initial connected greeting

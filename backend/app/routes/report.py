@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from app.middleware.rate_limit import limiter
 from app.models.report import (
     InterviewReport,
     PersonalizedRoadmap,
@@ -19,8 +20,10 @@ def get_user_id(current_user: Dict[str, Any]) -> str:
 
 
 @router.post("/report/generate/{session_id}", response_model=InterviewReport)
+@limiter.limit("5/minute")
 async def generate_interview_report(
     session_id: str,
+    request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """

@@ -244,17 +244,20 @@ class InterviewSessionManager:
         )
 
     async def get_session(self, session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve session record from MongoDB or in-memory backup."""
+        """Retrieve session record from MongoDB or in-memory backup strictly scoped to user_id."""
         if db_manager.db is not None:
             try:
-                doc = await db_manager.db.sessions.find_one({"session_id": session_id})
+                doc = await db_manager.db.sessions.find_one({"session_id": session_id, "user_id": user_id})
                 if doc:
                     doc["_id"] = str(doc["_id"])
                     return doc
             except Exception as e:
                 logger.warning(f"[SessionManager] DB error fetching session {session_id}: {e}")
 
-        return self._in_memory_sessions.get(session_id)
+        mem_session = self._in_memory_sessions.get(session_id)
+        if mem_session and mem_session.get("user_id") == user_id:
+            return mem_session
+        return None
 
     async def process_answer(
         self,

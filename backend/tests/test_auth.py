@@ -70,3 +70,28 @@ async def test_protected_endpoint_accepts_valid_token_and_syncs_db():
             await db.users.delete_one({"firebase_uid": "test_vtu_candidate_12345"})
 
     await close_mongo_connection()
+
+
+@pytest.mark.asyncio
+async def test_user_profile_endpoint():
+    """Verify /api/v1/auth/profile returns user profile details and session count."""
+    fake_decoded_token = {
+        "uid": "test_profile_user_999",
+        "email": "profile.candidate@vtu.ac.in",
+        "name": "Candidate Profile Test",
+        "picture": "https://example.com/photo.jpg",
+    }
+    with patch("firebase_admin.auth.verify_id_token", return_value=fake_decoded_token):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get(
+                "/api/v1/auth/profile",
+                headers={"Authorization": "Bearer mock_valid_token"},
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "success"
+            assert data["firebase_uid"] == "test_profile_user_999"
+            assert data["email"] == "profile.candidate@vtu.ac.in"
+            assert "total_sessions" in data
+

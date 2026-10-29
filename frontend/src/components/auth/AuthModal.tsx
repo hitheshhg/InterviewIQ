@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User as UserIcon, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -6,10 +7,11 @@ import { useAuth } from '../../context/AuthContext';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialMode?: 'signin' | 'signup';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'signin' }) => {
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +19,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const { loginWithGoogle, loginWithEmail, signupWithEmail } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsSignUp(initialMode === 'signup');
+    setError(null);
+  }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
@@ -33,6 +41,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await loginWithEmail(email, password);
       }
       onClose();
+      navigate('/dashboard');
     } catch (err: unknown) {
       if (err instanceof Error) {
         // Humanize common Firebase error messages
@@ -60,6 +69,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       await loginWithGoogle();
       onClose();
+      navigate('/dashboard');
     } catch (err: unknown) {
       if (err instanceof Error) {
         if (!err.message.includes('auth/popup-closed-by-user')) {

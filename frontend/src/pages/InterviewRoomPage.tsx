@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Zap,
   TrendingUp,
-  FileText,
   Volume2,
   VolumeX,
   Radio,
@@ -325,15 +324,12 @@ export const InterviewRoomPage: React.FC = () => {
           transition={{ duration: 0.4 }}
           className="max-w-3xl mx-auto"
         >
-          <div className="text-center mb-8">
-            <Badge variant="cyan" pulse className="mb-3">
-              Phase 8 • Voice AI Mock Interview
-            </Badge>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Voice AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-emerald-400">Mock Interview Room</span>
+          <div className="border-b border-white/10 pb-4 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              AI Interview Room
             </h1>
-            <p className="mt-3 text-slate-300 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-              Real-time voice conversation with our adaptive AI interviewer. Speak naturally with real-time speech transcription, natural text-to-speech, and responsive AI Orb presence.
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Practice technical interviews with adaptive voice AI.
             </p>
           </div>
 
@@ -451,22 +447,6 @@ export const InterviewRoomPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Resume Context Notification */}
-            <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 flex items-start gap-3 mb-6">
-              <FileText className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-slate-300">
-                <span className="font-semibold text-cyan-300">Resume-Aware Interviewing:</span>{' '}
-                The AI interviewer reads your technical skills and project experiences from your profile to formulate targeted deep-dive questions.
-              </div>
-            </div>
-
-            {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {errorMessage}
-              </div>
-            )}
-
             <Button
               variant="primary"
               size="lg"
@@ -477,12 +457,12 @@ export const InterviewRoomPage: React.FC = () => {
               {starting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Generating Opening Question...
+                  Starting...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Enter AI Interview Room
+                  Start interview
                 </>
               )}
             </Button>
@@ -569,7 +549,7 @@ export const InterviewRoomPage: React.FC = () => {
               </div>
 
               <Button variant="danger" size="sm" onClick={handleEndEarly}>
-                End Early
+                End interview
               </Button>
             </div>
           </div>
@@ -677,7 +657,7 @@ export const InterviewRoomPage: React.FC = () => {
                     className="text-xs text-cyan-400 hover:text-cyan-300 underline font-medium flex items-center gap-1 transition-colors"
                   >
                     <Zap className="w-3.5 h-3.5" />
-                    Fill Sample Answer for Viva Demo
+                    Use sample
                   </button>
                 </div>
 
@@ -767,7 +747,7 @@ export const InterviewRoomPage: React.FC = () => {
                         onClick={stopListening}
                         className="text-xs"
                       >
-                        Finish Speaking
+                        Done speaking
                       </Button>
                     )}
 
@@ -781,12 +761,12 @@ export const InterviewRoomPage: React.FC = () => {
                       {submitting ? (
                         <>
                           <RefreshCw className="w-4 h-4 animate-spin" />
-                          Evaluating Turn...
+                          Evaluating...
                         </>
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          Submit Response
+                          Submit answer
                         </>
                       )}
                     </Button>
@@ -976,7 +956,7 @@ export const InterviewRoomPage: React.FC = () => {
                   setSessionActive(false);
                 }}
               >
-                Start New Interview
+                New interview
               </Button>
               <Button
                 variant="secondary"
@@ -984,7 +964,7 @@ export const InterviewRoomPage: React.FC = () => {
                   window.location.href = '/analyzer';
                 }}
               >
-                Scan Resume (ATS Engine)
+                Scan resume
               </Button>
             </div>
           </Card>
