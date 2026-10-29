@@ -13,6 +13,7 @@ import { ResumePaperPreview } from '../components/resume/ResumePaperPreview';
 import { ATSScorePanel } from '../components/resume/ATSScorePanel';
 import { ExportDropdown } from '../components/resume/ExportDropdown';
 import { MultiJDModal } from '../components/resume/MultiJDModal';
+import { TailoringModal } from '../components/resume/TailoringModal';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { api } from '../services/api';
@@ -134,6 +135,16 @@ export const ResumeStudioPage: React.FC = () => {
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [bannerNotice, setBannerNotice] = useState<string | null>(null);
   const [isMultiJDModalOpen, setIsMultiJDModalOpen] = useState<boolean>(false);
+  const [isTailoringModalOpen, setIsTailoringModalOpen] = useState<boolean>(false);
+  const [tailorRole, setTailorRole] = useState<string>('Full Stack Engineer');
+  const [tailorCompany, setTailorCompany] = useState<string>('Target Company');
+  const [tailorJDText, setTailorJDText] = useState<string>('');
+
+  const handleApplyTailoring = (tailored: CanonicalResume, role: string) => {
+    handleResumeChange(tailored);
+    setBannerNotice(`Tailored draft for "${role}" applied! Saved as new draft.`);
+    setTimeout(() => setBannerNotice(null), 4000);
+  };
 
   // Mutate Resume (Pushes to History Stack)
   const handleResumeChange = (updated: CanonicalResume) => {
@@ -460,7 +471,16 @@ export const ResumeStudioPage: React.FC = () => {
               onFontSizeChange={setFontSize}
             />
           ) : (
-            <ATSScorePanel scoreData={atsScoreData} loading={scoringLoading} />
+            <ATSScorePanel
+              scoreData={atsScoreData}
+              loading={scoringLoading}
+              onOpenTailor={() => {
+                setTailorRole('Target Role');
+                setTailorCompany('Target Company');
+                setTailorJDText(jobDescription);
+                setIsTailoringModalOpen(true);
+              }}
+            />
           )}
         </div>
       </div>
@@ -470,6 +490,24 @@ export const ResumeStudioPage: React.FC = () => {
         isOpen={isMultiJDModalOpen}
         onClose={() => setIsMultiJDModalOpen(false)}
         resume={currentResume}
+        onSelectForTailoring={(role, company, text) => {
+          setIsMultiJDModalOpen(false);
+          setTailorRole(role);
+          setTailorCompany(company);
+          setTailorJDText(text);
+          setIsTailoringModalOpen(true);
+        }}
+      />
+
+      {/* One-Click Truthful Tailoring Modal */}
+      <TailoringModal
+        isOpen={isTailoringModalOpen}
+        onClose={() => setIsTailoringModalOpen(false)}
+        resume={currentResume}
+        jobDescription={tailorJDText || jobDescription}
+        targetRole={tailorRole}
+        targetCompany={tailorCompany}
+        onApplyTailoring={handleApplyTailoring}
       />
     </div>
   );

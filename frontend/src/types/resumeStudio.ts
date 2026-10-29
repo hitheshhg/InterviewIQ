@@ -243,5 +243,37 @@ export interface MultiJDCompareResponse {
   comparison_chart_data: Record<string, any>[];
 }
 
+export interface BulletDiffItem {
+  id: string;
+  section: string;
+  original_text: string;
+  tailored_text: string;
+  change_type: 'modified' | 'reordered' | 'unchanged';
+  has_unverified_claims: boolean;
+  unverified_tokens: string[];
+  explanation: string;
+}
+
+export interface TailorResumeRequest {
+  resume: CanonicalResume;
+  job_description: string;
+  target_role: string;
+  target_company?: string;
+  parent_version_id?: string | null;
+}
+
+export interface TailorResumeResponse {
+  tailored_resume: CanonicalResume;
+  target_role: string;
+  target_company: string;
+  base_score: number;
+  projected_tailored_score: number;
+  score_delta: number;
+  diff_items: BulletDiffItem[];
+  unverified_claims_count: number;
+  summary_changes: string;
+}
+
+
 
 

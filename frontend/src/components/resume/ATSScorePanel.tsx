@@ -14,15 +14,17 @@ import {
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import ScoreGauge from '../ui/ScoreGauge';
+import Button from '../ui/Button';
 import InfoTooltip from '../common/InfoTooltip';
 import { ATSScoreResponse } from '../../types/resumeStudio';
 
 interface ATSScorePanelProps {
   scoreData: ATSScoreResponse | null;
   loading?: boolean;
+  onOpenTailor?: () => void;
 }
 
-export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({ scoreData, loading }) => {
+export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({ scoreData, loading, onOpenTailor }) => {
   const [whyScoreOpen, setWhyScoreOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'skills' | 'weak_lines'>('skills');
 
@@ -81,6 +83,19 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({ scoreData, loading
               ? '40% JD Match • 60% Content & Formatting'
               : 'Redistributed: 25% Completeness, Metrics, Verbs, Format'}
           </p>
+
+          {/* One-Click Tailor Button if tailored against a JD */}
+          {is_tailored && onOpenTailor && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onOpenTailor}
+              className="mt-3 text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Tailor to this JD</span>
+            </Button>
+          )}
         </div>
 
         {/* Section Progress Bars */}

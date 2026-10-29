@@ -36,6 +36,7 @@ interface MultiJDModalProps {
   isOpen: boolean;
   onClose: () => void;
   resume: CanonicalResume;
+  onSelectForTailoring?: (role: string, company: string, text: string) => void;
 }
 
 const SAMPLE_JDS: JobDescriptionInput[] = [
@@ -59,7 +60,12 @@ const SAMPLE_JDS: JobDescriptionInput[] = [
   },
 ];
 
-export const MultiJDModal: React.FC<MultiJDModalProps> = ({ isOpen, onClose, resume }) => {
+export const MultiJDModal: React.FC<MultiJDModalProps> = ({
+  isOpen,
+  onClose,
+  resume,
+  onSelectForTailoring,
+}) => {
   const [jds, setJds] = useState<JobDescriptionInput[]>([SAMPLE_JDS[0]]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -301,6 +307,21 @@ export const MultiJDModal: React.FC<MultiJDModalProps> = ({ isOpen, onClose, res
                           <span>{r.verdict}</span>
                           <span>{r.matched_skills.length} skills matched</span>
                         </div>
+
+                        {onSelectForTailoring && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const origJD = jds.find((j) => j.id === r.jd_id);
+                              onSelectForTailoring(r.title, r.company, origJD?.text || '');
+                            }}
+                            className="w-full mt-2.5 text-[11px] py-1 flex items-center justify-center gap-1 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10"
+                          >
+                            <Sparkles className="w-3 h-3 text-cyan-400" />
+                            <span>Tailor Resume</span>
+                          </Button>
+                        )}
                       </div>
                     );
                   })}

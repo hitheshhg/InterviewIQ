@@ -22,11 +22,13 @@ from app.models.scoring import ScoreRequest, ATSScoreResponse
 from app.models.assist import AIAssistRequest, AIAssistResponse
 from app.models.export import ExportResumeRequest, ExportSelfTestResponse
 from app.models.multi_jd import MultiJDCompareRequest, MultiJDCompareResponse
+from app.models.tailor import TailorResumeRequest, TailorResumeResponse
 from app.services.resume_parser import resume_studio_parser
 from app.services.scoring_engine import scoring_engine
 from app.services.resume_assist import resume_assist_service
 from app.services.resume_exporter import resume_exporter
 from app.services.multi_jd_comparator import multi_jd_comparator
+from app.services.resume_tailor import resume_tailor_service
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
 
@@ -338,6 +340,30 @@ async def compare_multiple_job_descriptions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to compare job descriptions: {str(e)}",
         )
+
+
+@router.post("/tailor", response_model=TailorResumeResponse)
+@limiter.limit("10/minute")
+async def tailor_resume_to_jd(
+    request: Request,
+    payload: TailorResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Generate a tailored resume draft customized for a target Job Description.
+    Front-loads matching skills and accomplishments, tailors the summary,
+    and returns a side-by-side diff preview with Truthful AI evidence checking.
+    """
+    try:
+        response = await resume_tailor_service.tailor_resume(payload)
+        return response
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Tailoring error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to tailor resume: {str(e)}",
+        )
+
 
 
 

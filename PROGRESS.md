@@ -31,14 +31,15 @@
 | **Phase R3** | Resume Studio: Resume Builder & Live Preview | ✅ COMPLETED | Split-screen live builder (`ResumeStudioPage`), structured form editor with reorderable sections & bullets (`ResumeFormEditor`), live paper-style preview (`ResumePaperPreview`) with 4 ATS-safe templates (Classic, Modern, Compact, Minimal), dynamic 1-page/2-page fit indicator, undo/redo state stack, debounced autosave, inline AI assist (`AIAssistModal`) with Truthful AI evidence checking (`POST /assist`), 13/13 tests passing. |
 | **Phase R4** | Resume Studio: Export (PDF & DOCX) + Self-Test | ✅ COMPLETED | Selectable-text single-column PDF export (`ReportLab`), Microsoft Word DOCX export (`python-docx`), standard `Name_Role_Resume.ext` filenames, automated self-test re-parser verification (`POST /export/self-test`), `ExportDropdown` with green 'ATS-Readable' audit badge & modal, 15/15 tests passing. |
 | **Phase R5** | Resume Studio: Multi-JD Comparison | ✅ COMPLETED | Parallel multi-JD matching engine (`multi_jd_comparator`), in-memory caching, match rankings with #1 Best Fit badge, cross-role Skill Matrix Heatmap table, common gap diagnostics for study list, Recharts multi-role factor bar comparison, `MultiJDModal` with 1-click sample role loader, 7/7 tests passing. |
+| **Phase R6** | Resume Studio: One-Click Truthful Tailoring | ✅ COMPLETED | Algorithmic front-loading of JD-matched skills and relevant achievement bullets, target role summary synthesis, Truthful AI evidence checking (`has_unverified_claims` guard), `TailoringModal` with side-by-side diffs and projected ATS score gains, 6/6 tests passing (84/84 platform total). |
 
 ---
 
-## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R5 Delivered)
+## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R6 Delivered)
 
 - **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 78/78 automated tests passing across auth, data isolation, ATS, interview, report, E2E, parser, scoring engine, assist, builder, export, and multi-JD comparator suites.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5.7s).
+- **Automated Tests:** 84/84 automated tests passing across auth, data isolation, ATS, interview, report, E2E, parser, scoring engine, assist, builder, export, multi-JD comparator, and tailor suites.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~6.0s).
 - **Backend API:** FastAPI running with live MongoDB Atlas connection and Google Gemini AI failover.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).
 - **Security & Quota:** Strict Firebase ID token verification and per-user AI rate limiting (friendly 429 handler).
