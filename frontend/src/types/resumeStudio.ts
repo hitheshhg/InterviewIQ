@@ -208,4 +208,40 @@ export interface ExportSelfTestResponse {
   filename: string;
 }
 
+export interface JobDescriptionInput {
+  id: string;
+  title: string;
+  company?: string;
+  text: string;
+}
+
+export interface SingleJDMatchResult {
+  jd_id: string;
+  title: string;
+  company: string;
+  overall_score: number;
+  keyword_match_pct: number;
+  verdict: string;
+  matched_skills: string[];
+  partial_skills: string[];
+  missing_skills: string[];
+}
+
+export interface SkillHeatmapRow {
+  skill: string;
+  category: string;
+  cells: Record<string, 'matched' | 'partial' | 'missing'>;
+  missing_count: number;
+  matched_count: number;
+}
+
+export interface MultiJDCompareResponse {
+  rankings: SingleJDMatchResult[];
+  best_fit_jd_id: string;
+  skill_matrix: SkillHeatmapRow[];
+  common_gaps: string[];
+  comparison_chart_data: Record<string, any>[];
+}
+
+
 

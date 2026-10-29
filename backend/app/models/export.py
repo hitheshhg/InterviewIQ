@@ -22,3 +22,4 @@ class ExportSelfTestResponse(BaseModel):
     file_type: str
     verdict: str
     filename: str
+

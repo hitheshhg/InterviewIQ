@@ -21,10 +21,12 @@ from app.models.resume_studio import (
 from app.models.scoring import ScoreRequest, ATSScoreResponse
 from app.models.assist import AIAssistRequest, AIAssistResponse
 from app.models.export import ExportResumeRequest, ExportSelfTestResponse
+from app.models.multi_jd import MultiJDCompareRequest, MultiJDCompareResponse
 from app.services.resume_parser import resume_studio_parser
 from app.services.scoring_engine import scoring_engine
 from app.services.resume_assist import resume_assist_service
 from app.services.resume_exporter import resume_exporter
+from app.services.multi_jd_comparator import multi_jd_comparator
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
 
@@ -308,6 +310,35 @@ async def export_self_test(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to execute export self-test: {str(e)}",
         )
+
+
+@router.post("/compare-jds", response_model=MultiJDCompareResponse)
+@limiter.limit("15/minute")
+async def compare_multiple_job_descriptions(
+    request: Request,
+    payload: MultiJDCompareRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Compare a single resume version against up to 5 Job Descriptions in parallel.
+    Returns match rankings with best-fit badge, cross-JD skill matrix heatmap,
+    common skill gaps, and Recharts radar/bar comparison datasets.
+    """
+    try:
+        results = await multi_jd_comparator.compare_multiple_jds(payload)
+        return results
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve),
+        )
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Multi-JD comparison error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compare job descriptions: {str(e)}",
+        )
+
 
 
 

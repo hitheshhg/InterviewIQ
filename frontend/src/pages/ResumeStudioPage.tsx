@@ -12,6 +12,7 @@ import { ResumeFormEditor } from '../components/resume/ResumeFormEditor';
 import { ResumePaperPreview } from '../components/resume/ResumePaperPreview';
 import { ATSScorePanel } from '../components/resume/ATSScorePanel';
 import { ExportDropdown } from '../components/resume/ExportDropdown';
+import { MultiJDModal } from '../components/resume/MultiJDModal';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { api } from '../services/api';
@@ -22,6 +23,7 @@ import {
   Layout,
   Gauge,
   ChevronDown,
+  Layers,
 } from 'lucide-react';
 
 const INITIAL_RESUME: CanonicalResume = {
@@ -131,6 +133,7 @@ export const ResumeStudioPage: React.FC = () => {
   const [isSavingVersion, setIsSavingVersion] = useState<boolean>(false);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [bannerNotice, setBannerNotice] = useState<string | null>(null);
+  const [isMultiJDModalOpen, setIsMultiJDModalOpen] = useState<boolean>(false);
 
   // Mutate Resume (Pushes to History Stack)
   const handleResumeChange = (updated: CanonicalResume) => {
@@ -306,6 +309,17 @@ export const ResumeStudioPage: React.FC = () => {
             <span>Save Version</span>
           </Button>
 
+          {/* Multi-JD Comparison Trigger Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMultiJDModalOpen(true)}
+            className="text-xs flex items-center gap-1.5 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Compare JDs</span>
+          </Button>
+
           {/* Export & ATS Self-Test Dropdown */}
           <ExportDropdown
             resume={currentResume}
@@ -450,6 +464,13 @@ export const ResumeStudioPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Multi-JD Comparison Modal */}
+      <MultiJDModal
+        isOpen={isMultiJDModalOpen}
+        onClose={() => setIsMultiJDModalOpen(false)}
+        resume={currentResume}
+      />
     </div>
   );
 };

@@ -261,3 +261,4 @@ async def test_export_self_test_endpoint_authenticated_returns_report():
             assert data["file_type"] == "PDF"
     finally:
         app.dependency_overrides.clear()
+
