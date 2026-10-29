@@ -21,8 +21,8 @@
 | **Phase 7** | Interview Engine (Text Mode) | ✅ COMPLETED | Multi-turn state machine, adaptive difficulty (easy/med/hard), 5-parameter rubric evaluation, 1-turn combined AI response, REST + WS endpoints, InterviewRoomPage, 20/20 tests passing. |
 | **Phase 8** | Voice & Real-time Experience | ✅ COMPLETED | Web Speech API SpeechRecognition (STT), SpeechSynthesis (TTS), animated multi-state AI Orb, dynamic audio visualizer, hands-free toggle. |
 | **Phase 9** | Report, Roadmap, Dashboard | ✅ COMPLETED | 5-dimension Recharts Radar chart, candidate vs L5 benchmark table, personalized algorithmic career roadmap with milestone tasks, candidate analytics dashboard with area chart trends, PDF print styling, 24/24 tests passing. |
-| **Phase 10** | Hardening & Testing | 🔄 READY TO START | Input validation, rate limiting, error boundaries, test suite. |
-| **Phase 11** | Deployment | ⏳ PENDING | Vercel (frontend) + Render (backend) deployment guide. |
+| **Phase 10** | Hardening & Testing | ✅ COMPLETED | SlowAPI rate limiting (IP & token bucket), React ErrorBoundary with Aurora theme & recovery UI, end-to-end integration test (`test_e2e_flow.py`) covering complete ATS $\to$ Voice Interview $\to$ Report $\to$ Roadmap pipeline, 25/25 tests passing. |
+| **Phase 11** | Deployment | 🔄 READY TO START | Vercel (frontend) + Render (backend) deployment guide. |
 | **Phase 12** | Documentation & Viva Prep | ⏳ PENDING | 25 Viva questions with answers, 5-minute demo script, architecture guide. |
 
 ---
