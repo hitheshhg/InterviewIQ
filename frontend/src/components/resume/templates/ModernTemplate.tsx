@@ -260,3 +260,4 @@ export const ModernTemplate: React.FC<TemplateProps> = ({
     </article>
   );
 };
+

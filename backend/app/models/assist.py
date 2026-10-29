@@ -25,3 +25,4 @@ class AIAssistResponse(BaseModel):
     original_text: str
     action: str
     options: List[AIAssistOption]
+

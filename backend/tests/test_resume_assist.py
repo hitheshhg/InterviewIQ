@@ -115,3 +115,4 @@ async def test_assist_endpoint_authenticated_returns_options():
                 assert "unverified_tokens" in opt
     finally:
         app.dependency_overrides.clear()
+

@@ -246,3 +246,4 @@ export const ClassicTemplate: React.FC<TemplateProps> = ({
     </article>
   );
 };
+

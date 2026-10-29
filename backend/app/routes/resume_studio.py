@@ -8,6 +8,7 @@ from fastapi import (
     HTTPException,
     status,
     Request,
+    Response,
 )
 
 from app.models.resume_studio import (
@@ -19,9 +20,11 @@ from app.models.resume_studio import (
 )
 from app.models.scoring import ScoreRequest, ATSScoreResponse
 from app.models.assist import AIAssistRequest, AIAssistResponse
+from app.models.export import ExportResumeRequest, ExportSelfTestResponse
 from app.services.resume_parser import resume_studio_parser
 from app.services.scoring_engine import scoring_engine
 from app.services.resume_assist import resume_assist_service
+from app.services.resume_exporter import resume_exporter
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
 
@@ -195,6 +198,117 @@ async def assist_resume_text(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate assist options: {str(e)}",
         )
+
+
+@router.post("/export")
+@limiter.limit("20/minute")
+async def export_resume_document(
+    request: Request,
+    payload: ExportResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Export ATS-safe PDF or DOCX file using selected template and typography settings.
+    Returns binary file stream with standardized Name_Role_Resume.ext filename.
+    """
+    try:
+        ext = payload.format.lower()
+        filename = resume_exporter.sanitize_filename(
+            full_name=payload.resume.contact.full_name,
+            target_role=payload.target_role,
+            ext=ext,
+        )
+
+        if ext == "pdf":
+            file_bytes = resume_exporter.generate_pdf(
+                resume=payload.resume,
+                template=payload.template,
+                accent_color=payload.accent_color,
+                font_size=payload.font_size,
+            )
+            media_type = "application/pdf"
+        elif ext == "docx":
+            file_bytes = resume_exporter.generate_docx(
+                resume=payload.resume,
+                template=payload.template,
+                accent_color=payload.accent_color,
+            )
+            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported format: '{payload.format}'. Use 'pdf' or 'docx'.")
+
+        headers = {
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Filename": filename,
+        }
+        return Response(content=file_bytes, media_type=media_type, headers=headers)
+
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Export error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export resume: {str(e)}",
+        )
+
+
+@router.post("/export/self-test", response_model=ExportSelfTestResponse)
+@limiter.limit("20/minute")
+async def export_self_test(
+    request: Request,
+    payload: ExportResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Export Self-Test: Generates the file and immediately re-parses it with our ATS parser
+    to verify that contact info, skills, and sections survive.
+    """
+    try:
+        ext = payload.format.lower()
+        filename = resume_exporter.sanitize_filename(
+            full_name=payload.resume.contact.full_name,
+            target_role=payload.target_role,
+            ext=ext,
+        )
+
+        if ext == "pdf":
+            file_bytes = resume_exporter.generate_pdf(
+                resume=payload.resume,
+                template=payload.template,
+                accent_color=payload.accent_color,
+                font_size=payload.font_size,
+            )
+        else:
+            file_bytes = resume_exporter.generate_docx(
+                resume=payload.resume,
+                template=payload.template,
+                accent_color=payload.accent_color,
+            )
+
+        test_result = resume_exporter.run_export_self_test(
+            file_bytes=file_bytes,
+            file_type=ext,
+            expected_resume=payload.resume,
+        )
+
+        return ExportSelfTestResponse(
+            is_ats_readable=test_result["is_ats_readable"],
+            character_count=test_result["character_count"],
+            name_matched=test_result["name_matched"],
+            email_matched=test_result["email_matched"],
+            survived_sections=test_result["survived_sections"],
+            skills_survived_count=test_result["skills_survived_count"],
+            file_type=test_result["file_type"],
+            verdict=test_result["verdict"],
+            filename=filename,
+        )
+
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Self-test error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to execute export self-test: {str(e)}",
+        )
+
 
 
 

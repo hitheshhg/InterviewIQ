@@ -225,3 +225,4 @@ export const CompactTemplate: React.FC<TemplateProps> = ({
     </article>
   );
 };
+

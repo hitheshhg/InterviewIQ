@@ -11,6 +11,7 @@ import {
 import { ResumeFormEditor } from '../components/resume/ResumeFormEditor';
 import { ResumePaperPreview } from '../components/resume/ResumePaperPreview';
 import { ATSScorePanel } from '../components/resume/ATSScorePanel';
+import { ExportDropdown } from '../components/resume/ExportDropdown';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { api } from '../services/api';
@@ -295,7 +296,7 @@ export const ResumeStudioPage: React.FC = () => {
           </Button>
 
           <Button
-            variant="primary"
+            variant="outline"
             size="sm"
             onClick={handleSaveVersion}
             disabled={isSavingVersion}
@@ -304,6 +305,15 @@ export const ResumeStudioPage: React.FC = () => {
             <Save className={`w-3.5 h-3.5 ${isSavingVersion ? 'animate-spin' : ''}`} />
             <span>Save Version</span>
           </Button>
+
+          {/* Export & ATS Self-Test Dropdown */}
+          <ExportDropdown
+            resume={currentResume}
+            template={template}
+            accentColor={accentColor}
+            fontSize={fontSize}
+            targetRole="Full Stack Engineer"
+          />
         </div>
       </div>
 

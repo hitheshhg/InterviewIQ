@@ -215,3 +215,4 @@ async def test_ai_assist_truthful_check_with_fake_claims():
     assert has_claims is True
     # '40%' is a new number and 'Aws'/'Cognito' is an unverified tech
     assert any(token in ["40%", "Aws"] for token in unverified)
+

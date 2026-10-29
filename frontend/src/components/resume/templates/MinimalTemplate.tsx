@@ -195,3 +195,4 @@ export const MinimalTemplate: React.FC<TemplateProps> = ({
     </article>
   );
 };
+

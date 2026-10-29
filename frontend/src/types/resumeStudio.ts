@@ -194,3 +194,18 @@ export interface ResumeEditorSettings {
   hiddenSections: SectionKey[];
 }
 
+export type ExportFormat = 'pdf' | 'docx';
+
+export interface ExportSelfTestResponse {
+  is_ats_readable: boolean;
+  character_count: number;
+  name_matched: boolean;
+  email_matched: boolean;
+  survived_sections: string[];
+  skills_survived_count: number;
+  file_type: string;
+  verdict: string;
+  filename: string;
+}
+
+
