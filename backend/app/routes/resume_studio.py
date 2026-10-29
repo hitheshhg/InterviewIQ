@@ -18,8 +18,10 @@ from app.models.resume_studio import (
     ParseResumeResponse,
 )
 from app.models.scoring import ScoreRequest, ATSScoreResponse
+from app.models.assist import AIAssistRequest, AIAssistResponse
 from app.services.resume_parser import resume_studio_parser
 from app.services.scoring_engine import scoring_engine
+from app.services.resume_assist import resume_assist_service
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
 
@@ -170,5 +172,29 @@ async def evaluate_ats_score(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to calculate ATS score: {str(e)}",
         )
+
+
+@router.post("/assist", response_model=AIAssistResponse)
+@limiter.limit("15/minute")
+async def assist_resume_text(
+    request: Request,
+    payload: AIAssistRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Inline AI assistance for resume bullet points and summaries.
+    Provides 3 distinct rewrite options for 'improve', 'add_impact', or 'shorten'.
+    Enforces Truthful AI evidence checking to flag unverified numbers or skill claims.
+    """
+    try:
+        response = await resume_assist_service.generate_assist_options(payload)
+        return response
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Assist error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate assist options: {str(e)}",
+        )
+
 
 

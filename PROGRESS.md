@@ -28,14 +28,15 @@
 | **Phase R0** | Resume Studio: Plan & Discovery | ✅ COMPLETED | Reference repo analysis, canonical Resume schema design, API contract, risk mitigations, approved. |
 | **Phase R1** | Resume Studio: Model & Parsing | ✅ COMPLETED | Canonical Pydantic & TS schemas, PDF/DOCX extraction with scanned PDF image guard, Gemini structured parsing with heuristic fallback, MongoDB Atlas versioned storage (`resume_versions`), 7/7 automated tests passing. |
 | **Phase R2** | Resume Studio: Scoring Engine & JD Matching | ✅ COMPLETED | Deterministic 5-factor ATS scoring formula (40% JD match or 25% each redistributed), synonym normalization (`SYNONYM_MAP`), matched/partial/missing skill classification with evidence lines, weak-line detection (passive phrasing, missing metrics, bullet length, date format), `ATSScorePanel` UI with score gauge, breakdown drawer & skill chips, 8/8 automated tests passing. |
+| **Phase R3** | Resume Studio: Resume Builder & Live Preview | ✅ COMPLETED | Split-screen live builder (`ResumeStudioPage`), structured form editor with reorderable sections & bullets (`ResumeFormEditor`), live paper-style preview (`ResumePaperPreview`) with 4 ATS-safe templates (Classic, Modern, Compact, Minimal), dynamic 1-page/2-page fit indicator, undo/redo state stack, debounced autosave, inline AI assist (`AIAssistModal`) with Truthful AI evidence checking (`POST /assist`), 13/13 tests passing. |
 
 ---
 
-## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R2 Delivered)
+## 🏆 Project Completion Status: Resume Studio Upgrades Active (Phases 0–12 + R0–R3 Delivered)
 
 - **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 43/43 automated tests passing across auth, data isolation, ATS, interview, report, E2E, Resume Studio parser, and ATS scoring engine suites.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5.2s).
+- **Automated Tests:** 56/56 automated tests passing across auth, data isolation, ATS, interview, report, E2E, parser, scoring engine, assist, and builder suites.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5.7s).
 - **Backend API:** FastAPI running with live MongoDB Atlas connection and Google Gemini AI failover.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).
 - **Security & Quota:** Strict Firebase ID token verification and per-user AI rate limiting (friendly 429 handler).

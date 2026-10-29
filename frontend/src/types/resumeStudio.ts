@@ -24,6 +24,7 @@ export interface ProjectItem {
   title: string;
   tech_stack: string[];
   bullets: string[];
+  description?: string;
   github_url?: string;
   live_url?: string;
 }
@@ -74,6 +75,16 @@ export interface ResumeVersionSummary {
   ats_score: number;
   created_at: string;
   updated_at: string;
+}
+
+export type VersionSummaryItem = ResumeVersionSummary;
+
+export interface CreateVersionRequest {
+  label: string;
+  target_role: string;
+  data: CanonicalResume;
+  ats_score?: number;
+  parent_version_id?: string | null;
 }
 
 export interface ResumeVersionDoc {
@@ -145,3 +156,41 @@ export interface ScoreRequest {
   job_description?: string;
   target_role?: string;
 }
+
+export type AIAssistAction = 'improve' | 'add_impact' | 'shorten';
+
+export interface AIAssistRequest {
+  text: string;
+  action: AIAssistAction;
+  context_role?: string;
+  context_company?: string;
+  candidate_skills?: string[];
+}
+
+export interface AIAssistOption {
+  text: string;
+  diff_summary: string;
+  has_new_claims: boolean;
+  unverified_tokens: string[];
+  explanation: string;
+}
+
+export interface AIAssistResponse {
+  original_text: string;
+  action: string;
+  options: AIAssistOption[];
+}
+
+export type TemplateId = 'classic' | 'modern' | 'compact' | 'minimal';
+export type AccentColor = 'slate' | 'cyan' | 'emerald' | 'navy' | 'violet';
+export type FontSize = 'sm' | 'md' | 'lg';
+export type SectionKey = 'summary' | 'skills' | 'experience' | 'projects' | 'education' | 'certifications';
+
+export interface ResumeEditorSettings {
+  template: TemplateId;
+  accentColor: AccentColor;
+  fontSize: FontSize;
+  sectionOrder: SectionKey[];
+  hiddenSections: SectionKey[];
+}
+

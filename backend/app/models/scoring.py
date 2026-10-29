@@ -50,3 +50,4 @@ class ATSScoreResponse(BaseModel):
     missing_skills: List[SkillMatchItem] = Field(default_factory=list)
     weak_lines: List[WeakLineItem] = Field(default_factory=list)
     top_action_items: List[str] = Field(default_factory=list)
+
