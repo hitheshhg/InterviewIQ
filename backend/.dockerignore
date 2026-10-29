@@ -10,3 +10,4 @@ serviceAccountKey.json
 .gitignore
 .pytest_cache/
 tests/
+

@@ -27,3 +27,4 @@ services:
         value: gemini-3.8-flash
       - key: GEMINI_FALLBACK_MODEL
         value: gemini-3.5-flash
+
