@@ -22,6 +22,7 @@ class MultiJDComparatorService:
 
     def __init__(self):
         self._cache: Dict[str, Dict[str, Any]] = {}
+        self._in_memory_comparisons: Dict[str, List[Dict[str, Any]]] = {}
 
     def _compute_cache_key(self, resume_summary: str, jd_text: str) -> str:
         content = f"{resume_summary.strip()}|||{jd_text.strip()}"
@@ -210,5 +211,64 @@ class MultiJDComparatorService:
             comparison_chart_data=chart_data,
         )
 
+    async def record_comparison_history(
+        self, user_id: str, request: MultiJDCompareRequest, response: MultiJDCompareResponse
+    ) -> Dict[str, Any]:
+        """Record comparison results in MongoDB and in-memory cache for dashboard history."""
+        import uuid
+        from datetime import datetime, timezone
+        from app.database import get_db
+
+        top_match = response.rankings[0] if response.rankings else None
+        target_role = getattr(request, "target_role", None) or (top_match.title if top_match else "Software Engineer")
+        record = {
+            "id": f"comp-{uuid.uuid4().hex[:12]}",
+            "user_id": user_id,
+            "target_role": target_role,
+            "role_count": len(response.rankings),
+            "top_match_role": top_match.title if top_match else "General Role",
+            "top_match_company": top_match.company if top_match else "",
+            "top_match_percentage": float(top_match.overall_score) if top_match else 0.0,
+            "common_gaps_count": len(response.common_gaps),
+            "common_gaps": [str(g) for g in response.common_gaps[:5]],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+
+        try:
+            db = get_db()
+            if db is not None:
+                await db.resume_comparisons.insert_one(dict(record))
+        except Exception as e:
+            logger.warning(f"[MultiJD] DB error storing comparison history: {e}")
+
+        # Store in-memory fallback
+        if user_id not in self._in_memory_comparisons:
+            self._in_memory_comparisons[user_id] = []
+        self._in_memory_comparisons[user_id].insert(0, record)
+        self._in_memory_comparisons[user_id] = self._in_memory_comparisons[user_id][:20]
+
+        return record
+
+    async def list_user_comparisons(self, user_id: str) -> List[Dict[str, Any]]:
+        """Retrieve historical multi-JD comparison records for a candidate."""
+        from app.database import get_db
+        try:
+            db = get_db()
+            if db is not None:
+                cursor = db.resume_comparisons.find({"user_id": user_id}).sort("created_at", -1).limit(10)
+                items = []
+                async for row in cursor:
+                    row.pop("_id", None)
+                    items.append(row)
+                if items:
+                    return items
+        except Exception as e:
+            logger.warning(f"[MultiJD] DB error retrieving comparisons for {user_id}: {e}")
+
+        return list(self._in_memory_comparisons.get(user_id, []))
+
 
 multi_jd_comparator = MultiJDComparatorService()
+

@@ -63,8 +63,12 @@ export const DashboardPage: React.FC = () => {
   }
 
   const hasSessions = (metrics?.total_interviews_completed ?? 0) > 0;
+  const versionTrendData = metrics?.resume_versions_trend || [];
+  const recentComparisons = (metrics?.recent_comparisons || []).slice(0, 5);
+  const hasResumeActivity = versionTrendData.length > 0 || recentComparisons.length > 0;
   const trendData = metrics?.score_trend || [];
   const recentSessions = (metrics?.recent_sessions || []).slice(0, 5);
+
 
   return (
     <div className="space-y-6">
@@ -133,25 +137,27 @@ export const DashboardPage: React.FC = () => {
         </Card>
 
         {/* KPI 4: Latest ATS score */}
-        <Card padding="md" className="border-amber-500/20 bg-slate-900/60">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1.5">
-              Latest ATS
-              <InfoTooltip text="Most recent resume match percentage." />
-            </span>
-            <FileText className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-white">
-            {metrics?.latest_ats_score !== null && metrics?.latest_ats_score !== undefined
-              ? `${metrics.latest_ats_score}%`
-              : '-'}
-          </div>
-        </Card>
+        <Link to="/resume-studio" className="block group">
+          <Card padding="md" className="border-amber-500/20 bg-slate-900/60 group-hover:border-amber-500/40 transition-all cursor-pointer">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span className="flex items-center gap-1.5">
+                Latest ATS
+                <InfoTooltip text="Most recent resume match score. Click to open Resume Studio." />
+              </span>
+              <FileText className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-white">
+              {metrics?.latest_ats_score !== null && metrics?.latest_ats_score !== undefined
+                ? `${metrics.latest_ats_score}%`
+                : '-'}
+            </div>
+          </Card>
+        </Link>
       </div>
 
       {/* Conditional Rendering: Empty State for New Users vs Full Analytics */}
-      {!hasSessions ? (
-        /* Empty state for new users: one friendly card with one button, no blank charts */
+      {!hasSessions && !hasResumeActivity ? (
+        /* Empty state for brand new users */
         <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 text-center py-12">
           <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto mb-4">
             <Sparkles className="w-6 h-6" />
@@ -168,7 +174,7 @@ export const DashboardPage: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Score Trend Chart */}
+          {/* Interview Score Trend Chart */}
           {trendData.length > 0 && (
             <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60">
               <div className="flex items-center justify-between mb-4">
@@ -218,44 +224,151 @@ export const DashboardPage: React.FC = () => {
             </Card>
           )}
 
-          {/* Recent Sessions (max 5) */}
-          <Card padding="md" className="border-white/10 bg-slate-900/60">
-            <div className="flex items-center justify-between mb-3 px-2">
-              <h2 className="text-sm font-bold text-white">Recent sessions</h2>
-              <Link to="/interview" className="text-xs text-cyan-400 hover:text-cyan-300 font-medium">
-                New interview
-              </Link>
-            </div>
-
-            <div className="divide-y divide-white/5 text-xs">
-              {recentSessions.map((s, idx) => (
-                <div
-                  key={idx}
-                  className="py-3 px-2 flex items-center justify-between hover:bg-white/[0.02] rounded-lg transition-colors"
-                >
-                  <div>
-                    <p className="font-semibold text-white">{s.target_role}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {s.total_questions} questions • {new Date(s.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-mono font-bold">
-                      {s.overall_score ? s.overall_score.toFixed(1) : '7.5'}/10
-                    </span>
-                    <Link to={`/report/${s.session_id}`}>
-                      <Button variant="secondary" size="sm" className="text-xs py-1 px-2.5">
-                        View report
-                      </Button>
-                    </Link>
-                  </div>
+          {/* Resume Versions ATS Growth Chart */}
+          {versionTrendData.length >= 2 && (
+            <Card glow="violet" padding="lg" className="border-violet-500/20 bg-slate-900/60">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-sm font-bold text-white">Resume ATS growth</h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Score progression across resume versions.</p>
                 </div>
-              ))}
-            </div>
-          </Card>
+                <Link to="/resume-studio" className="text-xs text-violet-400 hover:text-violet-300 font-medium">
+                  Open Studio
+                </Link>
+              </div>
+
+              <div className="w-full h-56 sm:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={versionTrendData}>
+                    <defs>
+                      <linearGradient id="atsGlow" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.6} />
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="label"
+                      stroke="#475569"
+                      tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      stroke="#475569"
+                      tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0f172a',
+                        borderColor: '#1e293b',
+                        borderRadius: '8px',
+                        color: '#f8fafc',
+                        fontSize: '12px',
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="score"
+                      stroke="#8b5cf6"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#atsGlow)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
+          {/* Recent Multi-JD Comparisons */}
+          {recentComparisons.length > 0 && (
+            <Card padding="md" className="border-white/10 bg-slate-900/60">
+              <div className="flex items-center justify-between mb-3 px-2">
+                <div>
+                  <h2 className="text-sm font-bold text-white">Recent role comparisons</h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Multi-JD alignment and best-fit roles.</p>
+                </div>
+                <Link to="/resume-studio" className="text-xs text-cyan-400 hover:text-cyan-300 font-medium">
+                  Compare JDs
+                </Link>
+              </div>
+
+              <div className="divide-y divide-white/5 text-xs">
+                {recentComparisons.map((c, idx) => (
+                  <div
+                    key={idx}
+                    className="py-3 px-2 flex items-center justify-between hover:bg-white/[0.02] rounded-lg transition-colors"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-white">{c.target_role}</p>
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-mono">
+                          {c.role_count} roles
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Top match: <span className="text-slate-300 font-medium">{c.top_match_role}</span>{' '}
+                        {c.top_match_company ? `(${c.top_match_company})` : ''} •{' '}
+                        {c.created_at ? c.created_at.slice(0, 10) : 'Recent'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold">
+                        {Math.round(c.top_match_percentage)}% match
+                      </span>
+                      <Link to="/resume-studio">
+                        <Button variant="secondary" size="sm" className="text-xs py-1 px-2.5">
+                          Resume Studio
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Recent Sessions (max 5) */}
+          {recentSessions.length > 0 && (
+            <Card padding="md" className="border-white/10 bg-slate-900/60">
+              <div className="flex items-center justify-between mb-3 px-2">
+                <h2 className="text-sm font-bold text-white">Recent sessions</h2>
+                <Link to="/interview" className="text-xs text-cyan-400 hover:text-cyan-300 font-medium">
+                  New interview
+                </Link>
+              </div>
+
+              <div className="divide-y divide-white/5 text-xs">
+                {recentSessions.map((s, idx) => (
+                  <div
+                    key={idx}
+                    className="py-3 px-2 flex items-center justify-between hover:bg-white/[0.02] rounded-lg transition-colors"
+                  >
+                    <div>
+                      <p className="font-semibold text-white">{s.target_role}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {s.total_questions} questions • {new Date(s.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-mono font-bold">
+                        {s.overall_score ? s.overall_score.toFixed(1) : '7.5'}/10
+                      </span>
+                      <Link to={`/report/${s.session_id}`}>
+                        <Button variant="secondary" size="sm" className="text-xs py-1 px-2.5">
+                          View report
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       )}
+
     </div>
   );
 };

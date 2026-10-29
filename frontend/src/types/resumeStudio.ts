@@ -274,6 +274,88 @@ export interface TailorResumeResponse {
   summary_changes: string;
 }
 
+export interface VersionSummaryMeta {
+  id: string;
+  label: string;
+  target_role: string;
+  ats_score: number;
+  created_at: string;
+  word_count: number;
+}
+
+export interface VersionComparisonResponse {
+  version_1: VersionSummaryMeta;
+  version_2: VersionSummaryMeta;
+  score_delta: number;
+  word_count_delta: number;
+  summary_diff: {
+    changed: boolean;
+    version_1_summary: string;
+    version_2_summary: string;
+    v1_words: number;
+    v2_words: number;
+  };
+  skills_diff: {
+    added: string[];
+    removed: string[];
+    common: string[];
+    total_v1: number;
+    total_v2: number;
+    categories_v1: Record<string, string[]>;
+    categories_v2: Record<string, string[]>;
+  };
+  experience_diff: {
+    items: {
+      company: string;
+      role: string;
+      status: 'new_entry' | 'modified' | 'unchanged';
+      bullets_added: string[];
+      bullets_removed: string[];
+    }[];
+  };
+  projects_diff: {
+    items: {
+      title: string;
+      status: 'new_project' | 'modified' | 'unchanged';
+      new_tech_added?: string[];
+    }[];
+  };
+  verdict: string;
+}
+
+export interface CompareVersionsRequest {
+  version_id_1?: string;
+  version_id_2?: string;
+  resume_1?: CanonicalResume;
+  resume_2?: CanonicalResume;
+}
+
+export interface UpdateVersionLabelRequest {
+  label: string;
+}
+
+export interface MultiJDHistoryItem {
+  id: string;
+  user_id: string;
+  target_role: string;
+  role_count: number;
+  top_match_role: string;
+  top_match_company?: string;
+  top_match_percentage: number;
+  common_gaps_count: number;
+  common_gaps: string[];
+  created_at: string;
+}
+
+export interface ResumeVersionTrendItem {
+  version_id: string;
+  label: string;
+  score: number;
+  date: string;
+  role: string;
+}
+
+
 
 
 

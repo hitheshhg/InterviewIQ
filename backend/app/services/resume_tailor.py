@@ -257,3 +257,4 @@ Return JSON adhering strictly to:
 
 
 resume_tailor_service = ResumeTailorService()
+

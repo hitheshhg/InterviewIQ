@@ -13,9 +13,11 @@ class JobDescriptionInput(BaseModel):
 
 class MultiJDCompareRequest(BaseModel):
     resume: CanonicalResume
+    target_role: Optional[str] = Field(default="Software Engineer", description="Target role title")
     job_descriptions: List[JobDescriptionInput] = Field(
         ..., min_length=1, max_length=5, description="1 to 5 Job Descriptions to compare against"
     )
+
 
 
 class SingleJDMatchResult(BaseModel):

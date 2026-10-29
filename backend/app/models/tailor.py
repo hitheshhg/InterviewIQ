@@ -32,3 +32,4 @@ class TailorResumeResponse(BaseModel):
     diff_items: List[BulletDiffItem]
     unverified_claims_count: int
     summary_changes: str
+

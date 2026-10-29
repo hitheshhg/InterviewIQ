@@ -23,12 +23,19 @@ from app.models.assist import AIAssistRequest, AIAssistResponse
 from app.models.export import ExportResumeRequest, ExportSelfTestResponse
 from app.models.multi_jd import MultiJDCompareRequest, MultiJDCompareResponse
 from app.models.tailor import TailorResumeRequest, TailorResumeResponse
+from app.models.version_compare import (
+    CompareVersionsRequest,
+    VersionComparisonResponse,
+    UpdateVersionLabelRequest,
+)
 from app.services.resume_parser import resume_studio_parser
 from app.services.scoring_engine import scoring_engine
 from app.services.resume_assist import resume_assist_service
 from app.services.resume_exporter import resume_exporter
 from app.services.multi_jd_comparator import multi_jd_comparator
 from app.services.resume_tailor import resume_tailor_service
+from app.services.version_manager import version_manager_service
+
 from app.dependencies import get_current_user
 from app.middleware.rate_limit import limiter
 
@@ -328,6 +335,13 @@ async def compare_multiple_job_descriptions(
     """
     try:
         results = await multi_jd_comparator.compare_multiple_jds(payload)
+        user_id = get_user_id(current_user)
+        try:
+            await multi_jd_comparator.record_comparison_history(
+                user_id=user_id, request=payload, response=results
+            )
+        except Exception as he:
+            logger.warning(f"[ResumeStudio] Failed to record comparison history: {he}")
         return results
     except ValueError as ve:
         raise HTTPException(
@@ -363,6 +377,89 @@ async def tailor_resume_to_jd(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to tailor resume: {str(e)}",
         )
+
+
+@router.patch("/version/{version_id}/label", response_model=VersionSummaryItem)
+async def update_version_label(
+    version_id: str,
+    payload: UpdateVersionLabelRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """Update label of a resume version (e.g. 'Tailored: Amazon SDE')."""
+    user_id = get_user_id(current_user)
+    updated = await version_manager_service.update_version_label(
+        user_id=user_id, version_id=version_id, new_label=payload.label
+    )
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Resume version '{version_id}' not found.",
+        )
+    return updated
+
+
+@router.post("/version/{version_id}/restore", response_model=ResumeVersionDoc)
+async def restore_resume_version(
+    version_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """Restore a target version by duplicating it as a newly active version entry."""
+    user_id = get_user_id(current_user)
+    restored = await version_manager_service.restore_version(
+        user_id=user_id, version_id=version_id
+    )
+    if not restored:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Resume version '{version_id}' not found to restore.",
+        )
+    return restored
+
+
+@router.post("/compare-versions", response_model=VersionComparisonResponse)
+async def compare_resume_versions(
+    payload: CompareVersionsRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Compare any two resume versions side by side.
+    Computes score delta, word count delta, skills added/removed, summary diff,
+    and bullet differences.
+    """
+    user_id = get_user_id(current_user)
+    try:
+        diff_report = await version_manager_service.compare_versions(
+            user_id=user_id, request=payload
+        )
+        return diff_report
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve),
+        )
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Version comparison error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compare resume versions: {str(e)}",
+        )
+
+
+@router.get("/comparisons")
+async def list_recent_comparisons(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """Retrieve historical multi-JD comparisons for the authenticated candidate."""
+    user_id = get_user_id(current_user)
+    try:
+        return await multi_jd_comparator.list_user_comparisons(user_id=user_id)
+    except Exception as e:
+        logger.error(f"[ResumeStudio] Error listing comparisons: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list comparisons: {str(e)}",
+        )
+
 
 
 

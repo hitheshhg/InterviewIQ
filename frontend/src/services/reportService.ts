@@ -82,7 +82,26 @@ export interface DashboardMetrics {
     date: string;
   }>;
   dimension_averages: DimensionScore[];
+  resume_versions_trend?: Array<{
+    version_id: string;
+    label: string;
+    score: number;
+    date: string;
+    role: string;
+  }>;
+  recent_comparisons?: Array<{
+    id: string;
+    target_role: string;
+    role_count: number;
+    top_match_role: string;
+    top_match_company?: string;
+    top_match_percentage: number;
+    common_gaps_count: number;
+    common_gaps?: string[];
+    created_at: string;
+  }>;
 }
+
 
 export const generateReport = async (sessionId: string): Promise<InterviewReport> => {
   const response = await api.post<InterviewReport>(`/api/v1/report/generate/${sessionId}`);

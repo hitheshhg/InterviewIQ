@@ -14,6 +14,8 @@ import { ATSScorePanel } from '../components/resume/ATSScorePanel';
 import { ExportDropdown } from '../components/resume/ExportDropdown';
 import { MultiJDModal } from '../components/resume/MultiJDModal';
 import { TailoringModal } from '../components/resume/TailoringModal';
+import { ResumeVersionsModal } from '../components/resume/ResumeVersionsModal';
+import { VersionCompareModal } from '../components/resume/VersionCompareModal';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { api } from '../services/api';
@@ -25,7 +27,9 @@ import {
   Gauge,
   ChevronDown,
   Layers,
+  History,
 } from 'lucide-react';
+
 
 const INITIAL_RESUME: CanonicalResume = {
   contact: {
@@ -140,11 +144,47 @@ export const ResumeStudioPage: React.FC = () => {
   const [tailorCompany, setTailorCompany] = useState<string>('Target Company');
   const [tailorJDText, setTailorJDText] = useState<string>('');
 
+  // Version Management & Comparison State
+  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState<boolean>(false);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+  const [compareVersionIds, setCompareVersionIds] = useState<{ id1: string; id2: string }>({
+    id1: '',
+    id2: '',
+  });
+  const [savedVersionsCount, setSavedVersionsCount] = useState<number>(0);
+
+  const refreshVersionsCount = useCallback(async () => {
+    try {
+      const res = await api.get<any[]>('/api/v1/resume-studio/versions');
+      setSavedVersionsCount(res.data.length);
+    } catch (err) {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshVersionsCount();
+  }, [refreshVersionsCount]);
+
   const handleApplyTailoring = (tailored: CanonicalResume, role: string) => {
     handleResumeChange(tailored);
     setBannerNotice(`Tailored draft for "${role}" applied! Saved as new draft.`);
     setTimeout(() => setBannerNotice(null), 4000);
+    refreshVersionsCount();
   };
+
+  const handleLoadVersionFromModal = (loaded: CanonicalResume, label: string) => {
+    handleResumeChange(loaded);
+    setBannerNotice(`Loaded "${label}" into active editor!`);
+    setTimeout(() => setBannerNotice(null), 4000);
+    refreshVersionsCount();
+  };
+
+  const handleOpenCompareFromModal = (id1: string, id2: string) => {
+    setCompareVersionIds({ id1, id2 });
+    setIsCompareModalOpen(true);
+  };
+
 
   // Mutate Resume (Pushes to History Stack)
   const handleResumeChange = (updated: CanonicalResume) => {
@@ -233,11 +273,13 @@ export const ResumeStudioPage: React.FC = () => {
       await api.post('/api/v1/resume-studio/version', payload);
       setBannerNotice('Version saved to your cloud profile!');
       setTimeout(() => setBannerNotice(null), 3000);
+      refreshVersionsCount();
     } catch (err) {
       console.error('Failed to save version:', err);
     } finally {
       setIsSavingVersion(false);
     }
+
   };
 
   // Upload & Parse PDF/DOCX
@@ -320,7 +362,24 @@ export const ResumeStudioPage: React.FC = () => {
             <span>Save Version</span>
           </Button>
 
+          {/* Versions Drawer Trigger Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsVersionsModalOpen(true)}
+            className="text-xs flex items-center gap-1.5 text-violet-400 border-violet-500/30 hover:bg-violet-500/10"
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Versions</span>
+            {savedVersionsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono font-bold">
+                {savedVersionsCount}
+              </span>
+            )}
+          </Button>
+
           {/* Multi-JD Comparison Trigger Button */}
+
           <Button
             variant="outline"
             size="sm"
@@ -509,7 +568,26 @@ export const ResumeStudioPage: React.FC = () => {
         targetCompany={tailorCompany}
         onApplyTailoring={handleApplyTailoring}
       />
+
+      {/* Resume Versions Drawer / Modal */}
+      <ResumeVersionsModal
+        isOpen={isVersionsModalOpen}
+        onClose={() => setIsVersionsModalOpen(false)}
+        currentResume={currentResume}
+        currentScore={atsScoreData?.overall_score || 0}
+        onLoadVersion={handleLoadVersionFromModal}
+        onOpenCompare={handleOpenCompareFromModal}
+      />
+
+      {/* Side-by-Side Version Comparison Modal */}
+      <VersionCompareModal
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        versionId1={compareVersionIds.id1}
+        versionId2={compareVersionIds.id2}
+      />
     </div>
+
   );
 };
 

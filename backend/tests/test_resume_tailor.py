@@ -197,3 +197,4 @@ async def test_tailor_endpoint_authenticated_returns_diff():
             assert len(data["diff_items"]) > 0
     finally:
         app.dependency_overrides.clear()
+
