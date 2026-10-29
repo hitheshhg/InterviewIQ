@@ -1,7 +1,5 @@
 import React from 'react';
-import Sidebar from './Sidebar';
-import Topbar from './Topbar';
-import MobileTabBar from './MobileTabBar';
+import Navbar from './Navbar';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -9,23 +7,21 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-row selection:bg-cyan-500 selection:text-white">
-      {/* Desktop Left Sidebar */}
-      <Sidebar />
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-white">
+      {/* Top Floating Translucent Aurora Navbar */}
+      <Navbar />
 
-      {/* Main Column */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
+      {/* Main Content Stage */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pb-12">
+        {children}
+      </main>
 
-      {/* Mobile Bottom Tab Bar */}
-      <MobileTabBar />
+      {/* Minimal Footer */}
+      <footer className="text-center py-4 border-t border-white/5 text-[11px] text-slate-500">
+        InterviewIQ • Your data is private, encrypted, and never shared.
+      </footer>
     </div>
   );
 };
 
 export default AppShell;
-
