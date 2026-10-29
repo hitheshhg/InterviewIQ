@@ -9,8 +9,10 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     Query,
+    Request,
 )
 from firebase_admin import auth
+from app.middleware.rate_limit import limiter
 
 from app.models.session import (
     StartInterviewRequest,
@@ -32,8 +34,10 @@ def get_user_id(current_user: Dict[str, Any]) -> str:
 
 
 @router.post("/start", response_model=StartInterviewResponse)
+@limiter.limit("30/minute")
 async def start_interview_session(
-    request: StartInterviewRequest,
+    request: Request,
+    payload: StartInterviewRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
@@ -43,7 +47,7 @@ async def start_interview_session(
     """
     user_id = get_user_id(current_user)
     try:
-        response = await session_manager.start_session(user_id=user_id, request=request)
+        response = await session_manager.start_session(user_id=user_id, request=payload)
         return response
     except Exception as e:
         logger.error(f"[InterviewRoute] Error starting interview: {e}")
@@ -54,9 +58,11 @@ async def start_interview_session(
 
 
 @router.post("/{session_id}/answer", response_model=SubmitAnswerResponse)
+@limiter.limit("60/minute")
 async def submit_turn_answer(
     session_id: str,
-    request: SubmitAnswerRequest,
+    request: Request,
+    payload: SubmitAnswerRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
@@ -66,7 +72,7 @@ async def submit_turn_answer(
     user_id = get_user_id(current_user)
     try:
         response = await session_manager.process_answer(
-            session_id=session_id, user_id=user_id, request=request
+            session_id=session_id, user_id=user_id, request=payload
         )
         return response
     except ValueError as ve:

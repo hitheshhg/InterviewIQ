@@ -5,6 +5,9 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
 from app.dependencies import init_firebase_admin
+from app.middleware.rate_limit import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 from app.routes import health, auth, gemini_test, resume, interview, report
 
 # Setup logging
@@ -42,6 +45,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Rate Limiting configuration
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration
 app.add_middleware(

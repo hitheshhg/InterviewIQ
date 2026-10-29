@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Request
 from bson import ObjectId
+from app.middleware.rate_limit import limiter
 from app.services.resume_extractor import extract_text_from_file
 from app.services.ats_engine import run_full_ats_analysis
 from app.models.resume import ResumeUploadResponse, ATSAnalysisResult
@@ -13,7 +14,9 @@ router = APIRouter(prefix="/api/v1/resume", tags=["Resume & ATS Engine"])
 
 
 @router.post("/upload", response_model=ResumeUploadResponse)
+@limiter.limit("20/minute")
 async def upload_resume(
+    request: Request,
     file: UploadFile = File(...),
     job_description: str = Form(""),
     target_role: str = Form("Full Stack Developer"),
@@ -62,7 +65,9 @@ async def upload_resume(
 
 
 @router.post("/analyze-text", response_model=ATSAnalysisResult)
+@limiter.limit("30/minute")
 async def analyze_raw_resume_text(
+    request: Request,
     resume_text: str = Form(...),
     job_description: str = Form(""),
     target_role: str = Form("Full Stack Developer"),

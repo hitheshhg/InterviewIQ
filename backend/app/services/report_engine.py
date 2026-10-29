@@ -421,6 +421,11 @@ class ReportEngine:
             except Exception as e:
                 logger.warning(f"[ReportEngine] DB error compiling dashboard: {e}")
 
+        if not completed_sessions:
+            for s in session_manager._in_memory_sessions.values():
+                if s.get("user_id") == user_id and s.get("status") == "completed":
+                    completed_sessions.append(s)
+
         total_completed = len(completed_sessions)
         scores = [s.get("overall_score", 0.0) for s in completed_sessions if s.get("overall_score")]
 
@@ -470,3 +475,4 @@ class ReportEngine:
 
 
 report_engine = ReportEngine()
+

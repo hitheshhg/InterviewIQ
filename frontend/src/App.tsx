@@ -10,13 +10,15 @@ import { InterviewRoomPage } from './pages/InterviewRoomPage';
 import { InterviewReportPage } from './pages/InterviewReportPage';
 import { RoadmapPage } from './pages/RoadmapPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export const App: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   return (
-    <AuthProvider>
-      <Router>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
         <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col justify-between selection:bg-cyan-500 selection:text-white">
           <div>
             <Navbar onOpenAuth={() => setAuthModalOpen(true)} />
@@ -41,6 +43,7 @@ export const App: React.FC = () => {
         </div>
       </Router>
     </AuthProvider>
+  </ErrorBoundary>
   );
 };
 
