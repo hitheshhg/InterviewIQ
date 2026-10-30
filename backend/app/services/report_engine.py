@@ -461,35 +461,6 @@ class ReportEngine:
             DimensionScore(dimension="Confidence & Tone", score=avg_score or 7.6, benchmark=7.5, percentage=int((avg_score or 7.6) * 10)),
         ]
 
-        # Look up resume versions for ATS progression & latest ATS
-        from app.services.resume_parser import resume_studio_parser
-        from app.services.multi_jd_comparator import multi_jd_comparator
-
-        resume_versions_trend: List[Dict[str, Any]] = []
-        try:
-            user_versions = await resume_studio_parser.list_user_versions(user_id=user_id)
-            if user_versions:
-                sorted_v = sorted(user_versions, key=lambda x: str(x.created_at))
-                for v in sorted_v:
-                    resume_versions_trend.append({
-                        "version_id": v.id,
-                        "label": v.label,
-                        "score": round(v.ats_score, 1),
-                        "date": str(v.created_at)[:10] if v.created_at else "Recent",
-                        "role": v.target_role,
-                    })
-                if user_versions[0].ats_score:
-                    latest_ats = int(user_versions[0].ats_score)
-        except Exception as ve:
-            logger.warning(f"[ReportEngine] Error fetching resume versions for dashboard: {ve}")
-
-        # Look up recent comparisons
-        recent_comparisons: List[Dict[str, Any]] = []
-        try:
-            recent_comparisons = await multi_jd_comparator.list_user_comparisons(user_id=user_id)
-        except Exception as ce:
-            logger.warning(f"[ReportEngine] Error fetching comparisons for dashboard: {ce}")
-
         return DashboardMetrics(
             user_id=user_id,
             total_interviews_completed=total_completed,
@@ -499,11 +470,8 @@ class ReportEngine:
             latest_ats_score=latest_ats,
             recent_sessions=recent_sessions_summary,
             score_trend=score_trend,
-            dimension_averages=dimension_averages,
-            resume_versions_trend=resume_versions_trend,
-            recent_comparisons=recent_comparisons,
+            dimension_averages=dimension_averages
         )
-
 
 
 report_engine = ReportEngine()

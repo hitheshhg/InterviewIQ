@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Map,
@@ -20,17 +20,11 @@ import {
 } from '../services/reportService';
 
 export const RoadmapPage: React.FC = () => {
-  const location = useLocation();
   const [roadmap, setRoadmap] = useState<PersonalizedRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if ((location.state as any)?.roadmap) {
-      setRoadmap((location.state as any).roadmap);
-      setLoading(false);
-      return;
-    }
     const fetchRoadmap = async () => {
       setLoading(true);
       try {
@@ -43,7 +37,7 @@ export const RoadmapPage: React.FC = () => {
       }
     };
     fetchRoadmap();
-  }, [location.state]);
+  }, []);
 
   const toggleTask = (taskId: string) => {
     setCompletedTasks((prev) => ({

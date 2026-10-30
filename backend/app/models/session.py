@@ -76,8 +76,6 @@ class StartInterviewRequest(BaseModel):
     resume_text: Optional[str] = Field(None, description="Optional raw text of resume if no resume_id")
     total_questions: int = Field(6, ge=3, le=10, description="Number of questions in mock session (3-10)")
     initial_difficulty: Literal["easy", "medium", "hard"] = Field("medium")
-    question_seeds: Optional[List[str]] = Field(default_factory=list, description="Targeted question seeds from resume weak spots or JD skill gaps")
-
 
 
 class StartInterviewResponse(BaseModel):

@@ -82,26 +82,7 @@ export interface DashboardMetrics {
     date: string;
   }>;
   dimension_averages: DimensionScore[];
-  resume_versions_trend?: Array<{
-    version_id: string;
-    label: string;
-    score: number;
-    date: string;
-    role: string;
-  }>;
-  recent_comparisons?: Array<{
-    id: string;
-    target_role: string;
-    role_count: number;
-    top_match_role: string;
-    top_match_company?: string;
-    top_match_percentage: number;
-    common_gaps_count: number;
-    common_gaps?: string[];
-    created_at: string;
-  }>;
 }
-
 
 export const generateReport = async (sessionId: string): Promise<InterviewReport> => {
   const response = await api.post<InterviewReport>(`/api/v1/report/generate/${sessionId}`);
@@ -120,17 +101,6 @@ export const getLatestReport = async (): Promise<InterviewReport> => {
 
 export const getLatestRoadmap = async (): Promise<PersonalizedRoadmap> => {
   const response = await api.get<PersonalizedRoadmap>('/api/v1/roadmap/user/latest');
-  return response.data;
-};
-
-export const generateRoadmapFromGaps = async (
-  targetRole: string,
-  commonGaps: string[]
-): Promise<PersonalizedRoadmap> => {
-  const response = await api.post<PersonalizedRoadmap>('/api/v1/roadmap/generate-from-gaps', {
-    target_role: targetRole,
-    common_gaps: commonGaps,
-  });
   return response.data;
 };
 

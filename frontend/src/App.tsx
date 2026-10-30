@@ -6,7 +6,7 @@ import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ResumeStudioPage } from './pages/ResumeStudioPage';
+import { ResumeAnalyzerPage } from './pages/ResumeAnalyzerPage';
 import { InterviewRoomPage } from './pages/InterviewRoomPage';
 import { InterviewReportPage } from './pages/InterviewReportPage';
 import { RoadmapPage } from './pages/RoadmapPage';
@@ -79,17 +79,7 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <AppShell>
-                    <ResumeStudioPage />
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/resume"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <ResumeStudioPage />
+                    <ResumeAnalyzerPage />
                   </AppShell>
                 </ProtectedRoute>
               }

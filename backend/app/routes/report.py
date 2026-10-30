@@ -7,11 +7,8 @@ from app.models.report import (
     PersonalizedRoadmap,
     DashboardMetrics,
 )
-from app.models.platform_bridges import GenerateRoadmapFromGapsRequest
 from app.services.report_engine import report_engine
-from app.services.platform_bridges import platform_bridges_service
 from app.dependencies import get_current_user
-
 
 logger = logging.getLogger("interviewiq.routes.report")
 
@@ -99,32 +96,6 @@ async def get_latest_candidate_roadmap(
             detail="No roadmap found.",
         )
     return roadmap
-
-
-@router.post("/roadmap/generate-from-gaps", response_model=PersonalizedRoadmap)
-@limiter.limit("10/minute")
-async def generate_candidate_roadmap_from_gaps(
-    request: Request,
-    payload: GenerateRoadmapFromGapsRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    """
-    Construct and save a tailored Career Roadmap addressing the candidate's exact
-    common skill gaps from Multi-JD analysis.
-    """
-    user_id = get_user_id(current_user)
-    try:
-        roadmap = await platform_bridges_service.generate_roadmap_from_common_gaps(
-            user_id=user_id, request=payload
-        )
-        return roadmap
-    except Exception as e:
-        logger.error(f"[ReportRoute] Error constructing roadmap from gaps: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate roadmap from gaps: {str(e)}",
-        )
-
 
 
 @router.get("/dashboard/metrics", response_model=DashboardMetrics)

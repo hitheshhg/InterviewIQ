@@ -80,7 +80,4 @@ class DashboardMetrics(BaseModel):
     recent_sessions: List[Dict[str, Any]] = Field(default_factory=list)
     score_trend: List[Dict[str, Any]] = Field(default_factory=list)
     dimension_averages: List[DimensionScore] = Field(default_factory=list)
-    resume_versions_trend: List[Dict[str, Any]] = Field(default_factory=list)
-    recent_comparisons: List[Dict[str, Any]] = Field(default_factory=list)
-
 

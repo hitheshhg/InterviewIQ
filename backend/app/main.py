@@ -7,7 +7,7 @@ from app.database import connect_to_mongo, close_mongo_connection
 from app.dependencies import init_firebase_admin
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.routes import health, auth, gemini_test, resume, interview, report, resume_studio
+from app.routes import health, auth, gemini_test, resume, interview, report
 
 # Setup logging
 logging.basicConfig(
@@ -65,7 +65,6 @@ app.include_router(gemini_test.router)
 app.include_router(resume.router)
 app.include_router(interview.router)
 app.include_router(report.router)
-app.include_router(resume_studio.router)
 
 
 @app.get("/")

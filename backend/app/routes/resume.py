@@ -7,6 +7,14 @@ from app.middleware.rate_limit import limiter
 from app.services.resume_extractor import extract_text_from_file
 from app.services.ats_engine import run_full_ats_analysis
 from app.models.resume import ResumeUploadResponse, ATSAnalysisResult
+from app.models.canonical_resume import (
+    CanonicalResume,
+    ParseResumeResponse,
+    SaveActiveResumeRequest,
+    ActiveResumeResponse,
+)
+from app.services.canonical_parser import canonical_parser
+from app.services.canonical_resume_manager import canonical_resume_manager
 from app.dependencies import get_current_user
 from app.database import get_db
 
@@ -113,6 +121,97 @@ async def get_latest_resume(current_user: Dict[str, Any] = Depends(get_current_u
     }
 
 
+# =========================================================================
+# RESUME FLOW v2 (STEP 1: UPLOAD, PARSE, EDIT, ACTIVE RESUME STORAGE)
+# =========================================================================
+
+@router.post("/parse-upload", response_model=ParseResumeResponse)
+@limiter.limit("5/minute")
+async def parse_uploaded_resume(
+    request: Request,
+    file: UploadFile = File(...),
+    job_description: Optional[str] = Form(""),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Step 1: Upload a PDF or DOCX resume.
+    Validates file type/size/corruption/empty/scanned status, extracts plain text,
+    and parses into the canonical Resume JSON using Gemini structured output with retry.
+    """
+    raw_text, file_type = await extract_text_from_file(file)
+
+    canonical_resume = await canonical_parser.parse_resume_text(raw_text)
+
+    return ParseResumeResponse(
+        status="success",
+        file_name=file.filename or "resume.pdf",
+        file_type=file_type,
+        raw_text_length=len(raw_text),
+        canonical_resume=canonical_resume,
+        job_description=job_description or "",
+    )
+
+
+@router.post("/save-active", response_model=ActiveResumeResponse)
+async def save_active_resume(
+    payload: SaveActiveResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Saves or updates the candidate's canonical resume as their active version in MongoDB.
+    This active resume is immediately picked up by interview sessions and analytics.
+    """
+    user_id = current_user.get("firebase_uid") or current_user.get("uid") or "anonymous_user"
+    active_resume = await canonical_resume_manager.save_active_resume(
+        user_id=user_id, payload=payload
+    )
+    return active_resume
+
+
+@router.get("/active", response_model=ActiveResumeResponse)
+async def get_candidate_active_resume(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Retrieve the candidate's currently active resume.
+    """
+    user_id = current_user.get("firebase_uid") or current_user.get("uid") or "anonymous_user"
+    active_doc = await canonical_resume_manager.get_active_resume(user_id=user_id)
+    if not active_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active resume found for this candidate. Upload a resume in Step 1.",
+        )
+
+    canonical_data = active_doc.get("canonical_data") or {}
+    return ActiveResumeResponse(
+        status="success",
+        resume_id=str(active_doc.get("_id", "active_res")),
+        version=active_doc.get("version", 1),
+        is_active=True,
+        target_role=active_doc.get("target_role", "Full Stack Developer"),
+        job_description=active_doc.get("job_description", ""),
+        canonical_resume=CanonicalResume(**canonical_data),
+        updated_at=active_doc.get("updated_at", datetime.now(timezone.utc)).isoformat()
+        if hasattr(active_doc.get("updated_at"), "isoformat")
+        else str(active_doc.get("updated_at", "")),
+    )
+
+
+@router.get("/versions")
+async def list_candidate_resume_versions(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """List all saved resume versions for the candidate."""
+    user_id = current_user.get("firebase_uid") or current_user.get("uid") or "anonymous_user"
+    versions = await canonical_resume_manager.list_resume_versions(user_id=user_id)
+    return {
+        "status": "success",
+        "total_versions": len(versions),
+        "versions": versions,
+    }
+
+
 @router.get("/{resume_id}")
 async def get_resume_by_id(
     resume_id: str,
@@ -134,3 +233,6 @@ async def get_resume_by_id(
         "status": "success",
         "resume": resume
     }
+
+
+
