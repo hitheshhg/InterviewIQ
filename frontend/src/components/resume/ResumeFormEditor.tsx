@@ -30,7 +30,6 @@ import {
   ArrowDown,
   Undo2,
   Redo2,
-  CheckCircle,
 } from 'lucide-react';
 import { AIAssistModal } from './AIAssistModal';
 
@@ -60,8 +59,8 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
   canRedo,
   onUndo,
   onRedo,
-  autosaveState,
-  lastSavedTime,
+  autosaveState: _autosaveState,
+  lastSavedTime: _lastSavedTime,
 }) => {
   // Accordion state
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -301,94 +300,60 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Editor Control Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-900/80 border border-white/10">
+    <div className="space-y-3">
+      {/* Sleek Minimal Editor Toolbar */}
+      <div className="flex items-center justify-between text-xs text-slate-400 px-1 py-0.5">
         <div className="flex items-center gap-2">
           {/* Undo / Redo */}
-          <div className="flex items-center gap-1 border-r border-white/10 pr-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={onUndo}
               disabled={!canUndo}
               title="Undo (Ctrl+Z)"
-              className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed border border-white/5"
+              className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 transition-colors"
             >
-              <Undo2 className="w-4 h-4" />
+              <Undo2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onRedo}
               disabled={!canRedo}
               title="Redo (Ctrl+Shift+Z)"
-              className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed border border-white/5"
+              className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 transition-colors"
             >
-              <Redo2 className="w-4 h-4" />
+              <Redo2 className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          {/* Quick Accordion Expand/Collapse */}
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <button
-              type="button"
-              onClick={expandAll}
-              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/5"
-            >
-              Expand All
-            </button>
-            <button
-              type="button"
-              onClick={collapseAll}
-              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/5"
-            >
-              Collapse All
-            </button>
-          </div>
-        </div>
-
-        {/* Autosave Status Indicator */}
-        <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
-          {autosaveState === 'saving' ? (
-            <>
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span>Saving...</span>
-            </>
-          ) : autosaveState === 'saved' ? (
-            <>
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Saved {lastSavedTime ? `at ${lastSavedTime}` : ''}</span>
-            </>
-          ) : (
-            <>
-              <div className="w-2 h-2 rounded-full bg-amber-400" />
-              <span>Unsaved edits</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Section Navigation Chips */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar">
-        {['contact', ...sectionOrder].map((key) => (
+          <span className="text-white/10">|</span>
           <button
-            key={key}
             type="button"
-            onClick={() => {
-              setOpenSections((prev) => ({ ...prev, [key]: true }));
-              const el = document.getElementById(`section-${key}`);
-              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }}
-            className={`px-2.5 py-1 rounded-lg border text-[11px] capitalize whitespace-nowrap transition-all ${
-              openSections[key]
-                ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 font-semibold'
-                : 'bg-white/[0.03] border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
+            onClick={Object.values(openSections).every(Boolean) ? collapseAll : expandAll}
+            className="text-[11px] text-slate-400 hover:text-white transition-colors"
           >
-            {key}
+            {Object.values(openSections).every(Boolean) ? 'Collapse all' : 'Expand all'}
           </button>
-        ))}
+        </div>
+
+        {/* Minimal Section Nav Anchors */}
+        <div className="flex items-center gap-1 text-[11px]">
+          {['contact', 'skills', 'experience', 'projects', 'education'].map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                setOpenSections((prev) => ({ ...prev, [key]: true }));
+                const el = document.getElementById(`section-${key}`);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="px-1.5 py-0.5 rounded text-slate-400 hover:text-cyan-300 capitalize hover:bg-white/5 transition-colors"
+            >
+              {key}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 1. Contact Information Card */}
-      <Card id="section-contact" padding="md" className="border-white/10 bg-slate-900/60">
+      <Card id="section-contact" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
         <div
           onClick={() => toggleAccordion('contact')}
           className="flex items-center justify-between cursor-pointer select-none"
@@ -454,7 +419,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
         switch (sectionKey) {
           case 'summary':
             return (
-              <Card id="section-summary" key="summary" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-summary" key="summary" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('summary')}
@@ -471,7 +436,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onToggleHideSection('summary')}
-                      className="p-1 text-slate-400 hover:text-white"
+                      className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                       title={isHidden ? 'Show section' : 'Hide section'}
                     >
                       {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -479,14 +444,14 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                     <button
                       onClick={() => moveSection(sIdx, 'up')}
                       disabled={sIdx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'down')}
                       disabled={sIdx === sectionOrder.length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -529,7 +494,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'skills':
             return (
-              <Card id="section-skills" key="skills" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-skills" key="skills" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('skills')}
@@ -546,21 +511,21 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onToggleHideSection('skills')}
-                      className="p-1 text-slate-400 hover:text-white"
+                      className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                       {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'up')}
                       disabled={sIdx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'down')}
                       disabled={sIdx === sectionOrder.length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -568,7 +533,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                 </div>
 
                 {openSections.skills && !isHidden && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 space-y-2.5">
                     {[
                       { key: 'languages', label: 'Languages' },
                       { key: 'frameworks_libraries', label: 'Frameworks & Libraries' },
@@ -583,7 +548,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                           <label className="text-[11px] font-semibold text-slate-300">
                             {cat.label}
                           </label>
-                          <div className="flex flex-wrap gap-1.5 p-2 bg-slate-950/70 border border-white/5 rounded-lg min-h-[38px] items-center">
+                          <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-950/70 border border-white/5 rounded-lg min-h-[34px] items-center">
                             {items.map((skill) => (
                               <span
                                 key={skill}
@@ -621,7 +586,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'experience':
             return (
-              <Card id="section-experience" key="experience" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-experience" key="experience" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('experience')}
@@ -640,21 +605,21 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onToggleHideSection('experience')}
-                      className="p-1 text-slate-400 hover:text-white"
+                      className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                       {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'up')}
                       disabled={sIdx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'down')}
                       disabled={sIdx === sectionOrder.length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -662,11 +627,11 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                 </div>
 
                 {openSections.experience && !isHidden && (
-                  <div className="mt-3 space-y-4">
+                  <div className="mt-3 space-y-3">
                     {resume.experience.map((exp, eIdx) => (
                       <div
                         key={exp.id || eIdx}
-                        className="p-3.5 bg-slate-950/70 border border-white/10 rounded-xl space-y-3"
+                        className="p-3 bg-slate-950/60 border border-white/5 rounded-lg space-y-2.5"
                       >
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
@@ -778,7 +743,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'projects':
             return (
-              <Card id="section-projects" key="projects" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-projects" key="projects" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('projects')}
@@ -797,21 +762,21 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onToggleHideSection('projects')}
-                      className="p-1 text-slate-400 hover:text-white"
+                      className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                       {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'up')}
                       disabled={sIdx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'down')}
                       disabled={sIdx === sectionOrder.length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -819,11 +784,11 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                 </div>
 
                 {openSections.projects && !isHidden && (
-                  <div className="mt-3 space-y-4">
+                  <div className="mt-3 space-y-3">
                     {resume.projects.map((proj, pIdx) => (
                       <div
                         key={proj.id || pIdx}
-                        className="p-3.5 bg-slate-950/70 border border-white/10 rounded-xl space-y-3"
+                        className="p-3 bg-slate-950/60 border border-white/5 rounded-lg space-y-2.5"
                       >
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
@@ -863,9 +828,21 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
                         {/* Bullets */}
                         <div className="space-y-2">
-                          <span className="text-[11px] font-semibold text-slate-400 block">
-                            Key Features & Accomplishments
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[11px] font-semibold text-slate-400 block">
+                              Key Features & Accomplishments
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateProjectItem(proj.id, { bullets: [...proj.bullets, ''] });
+                              }}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Add Bullet</span>
+                            </button>
+                          </div>
                           {proj.bullets.map((bullet, bIdx) => (
                             <div key={bIdx} className="flex items-start gap-2">
                               <span className="text-slate-500 text-xs mt-2">•</span>
@@ -879,24 +856,37 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                                 }}
                                 className="flex-1 bg-slate-900 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-400"
                               />
-                              <button
-                                onClick={() =>
-                                  setAssistTarget({
-                                    text: bullet,
-                                    contextRole: 'Project Developer',
-                                    contextCompany: proj.title,
-                                    onAccept: (rewritten) => {
-                                      const newB = [...proj.bullets];
-                                      newB[bIdx] = rewritten;
-                                      updateProjectItem(proj.id, { bullets: newB });
-                                    },
-                                  })
-                                }
-                                title="AI Assist"
-                                className="p-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20"
-                              >
-                                <Sparkles className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  onClick={() =>
+                                    setAssistTarget({
+                                      text: bullet,
+                                      contextRole: 'Project Developer',
+                                      contextCompany: proj.title,
+                                      onAccept: (rewritten) => {
+                                        const newB = [...proj.bullets];
+                                        newB[bIdx] = rewritten;
+                                        updateProjectItem(proj.id, { bullets: newB });
+                                      },
+                                    })
+                                  }
+                                  title="AI Assist"
+                                  className="p-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20"
+                                >
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newB = proj.bullets.filter((_, idx) => idx !== bIdx);
+                                    updateProjectItem(proj.id, { bullets: newB });
+                                  }}
+                                  title="Delete bullet"
+                                  className="p-1 rounded text-slate-500 hover:text-rose-400"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -919,7 +909,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'education':
             return (
-              <Card id="section-education" key="education" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-education" key="education" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('education')}
@@ -931,21 +921,21 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onToggleHideSection('education')}
-                      className="p-1 text-slate-400 hover:text-white"
+                      className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                       {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'up')}
                       disabled={sIdx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'down')}
                       disabled={sIdx === sectionOrder.length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -953,11 +943,11 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                 </div>
 
                 {openSections.education && !isHidden && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 space-y-2.5">
                     {resume.education.map((edu) => (
                       <div
                         key={edu.id}
-                        className="p-3 bg-slate-950/70 border border-white/10 rounded-xl space-y-2"
+                        className="p-2.5 bg-slate-950/60 border border-white/5 rounded-lg space-y-2"
                       >
                         <div className="flex justify-between">
                           <span className="text-xs font-bold text-white">{edu.institution}</span>
@@ -1008,7 +998,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'certifications':
             return (
-              <Card id="section-certifications" key="certifications" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-certifications" key="certifications" padding="sm" className="border-white/5 bg-slate-900/50 hover:border-white/10 transition-all">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('certifications')}
@@ -1022,21 +1012,21 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onToggleHideSection('certifications')}
-                      className="p-1 text-slate-400 hover:text-white"
+                      className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                       {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'up')}
                       disabled={sIdx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => moveSection(sIdx, 'down')}
                       disabled={sIdx === sectionOrder.length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-20 hover:bg-white/5 transition-colors"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -1048,7 +1038,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
                     {resume.certifications.map((cert) => (
                       <div
                         key={cert.id}
-                        className="p-2.5 bg-slate-950/70 border border-white/10 rounded-lg flex items-center justify-between"
+                        className="p-2 bg-slate-950/60 border border-white/5 rounded-lg flex items-center justify-between"
                       >
                         <span className="text-xs text-slate-200">
                           {cert.name} ({cert.issuer}) {cert.year ? `• ${cert.year}` : ''}

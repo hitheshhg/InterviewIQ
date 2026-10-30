@@ -11,7 +11,7 @@ import { ModernTemplate } from './templates/ModernTemplate';
 import { CompactTemplate } from './templates/CompactTemplate';
 import { MinimalTemplate } from './templates/MinimalTemplate';
 import Badge from '../ui/Badge';
-import { Check, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut } from 'lucide-react';
 
 interface ResumePaperPreviewProps {
   resume: CanonicalResume;
@@ -37,7 +37,7 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
   hiddenSections,
   onTemplateChange,
   onAccentColorChange,
-  onFontSizeChange,
+  onFontSizeChange: _onFontSizeChange,
 }) => {
   const paperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,19 +118,19 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-slate-950/40 rounded-xl border border-white/10 p-3 sm:p-4">
-      {/* Controls Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10 mb-3">
+    <div className="flex flex-col h-full bg-slate-950/40 rounded-xl border border-white/5 p-2 sm:p-3">
+      {/* Sleek Controls Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/5 mb-2.5">
         {/* Template Selector Pills */}
-        <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-white/10">
+        <div className="flex items-center gap-0.5 bg-slate-900/90 p-0.5 rounded-lg border border-white/10 text-xs">
           {templatesList.map((t) => (
             <button
               key={t.id}
               onClick={() => onTemplateChange(t.id)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`px-2 py-0.5 rounded font-medium transition-all ${
                 template === t.id
-                  ? 'bg-cyan-500 text-black shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-cyan-500 text-black shadow font-semibold'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {t.label}
@@ -138,37 +138,20 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
           ))}
         </div>
 
-        {/* Accent Color & Font Controls */}
-        <div className="flex items-center gap-3">
+        {/* Accent Colors, Page Badge & Zoom */}
+        <div className="flex items-center gap-2.5">
           {/* Colors */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {colorsList.map((c) => (
               <button
                 key={c.id}
                 onClick={() => onAccentColorChange(c.id)}
                 title={c.label}
-                className={`w-5 h-5 rounded-full border transition-transform flex items-center justify-center ${
-                  accentColor === c.id ? 'scale-110 border-white ring-2 ring-white/20' : 'border-transparent opacity-70 hover:opacity-100'
+                className={`w-4 h-4 rounded-full transition-all flex items-center justify-center ${
+                  accentColor === c.id ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'
                 }`}
                 style={{ backgroundColor: c.colorHex }}
-              >
-                {accentColor === c.id && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-              </button>
-            ))}
-          </div>
-
-          {/* Font Size Pills */}
-          <div className="flex items-center bg-slate-900/80 p-0.5 rounded-lg border border-white/10 text-[11px]">
-            {(['sm', 'md', 'lg'] as FontSize[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => onFontSizeChange(f)}
-                className={`px-2 py-0.5 rounded uppercase font-mono ${
-                  fontSize === f ? 'bg-white/20 text-white font-bold' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {f}
-              </button>
+              />
             ))}
           </div>
 
@@ -177,39 +160,31 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
             variant={pageCount === 1 ? 'emerald' : pageCount === 2 ? 'amber' : 'rose'}
             size="sm"
           >
-            {pageCount === 1 ? '1 Page (Optimal)' : `${pageCount} Pages`}
+            {pageCount === 1 ? '1 Page' : `${pageCount} Pages`}
           </Badge>
 
-          {/* Zoom & Fit Buttons */}
-          <div className="flex items-center gap-1 text-slate-400">
+          {/* Streamlined Zoom Control */}
+          <div className="flex items-center bg-slate-900/90 rounded-md border border-white/10 p-0.5 text-xs text-slate-400">
             <button
-              onClick={handleFitToWidth}
-              className="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 hover:bg-white/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/20 transition-colors flex items-center gap-1"
-              title="Auto-fit paper width to available workspace"
-            >
-              <Maximize2 className="w-3 h-3" />
-              <span>Fit</span>
-            </button>
-            <button
-              onClick={() => setZoomScale((prev) => Math.max(0.4, Number((prev - 0.1).toFixed(2))))}
-              className="p-1 hover:text-white hover:bg-white/5 rounded"
+              onClick={() => setZoomScale((prev) => Math.max(0.45, Number((prev - 0.1).toFixed(2))))}
+              className="px-1.5 py-0.5 hover:text-white"
               title="Zoom out"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => setZoomScale(1.0)}
-              className="text-[11px] font-mono text-slate-300 hover:text-white w-9 text-center px-0.5 py-0.5 rounded hover:bg-white/5"
-              title="Click to reset to 100%"
+              onClick={handleFitToWidth}
+              className="px-1.5 py-0.5 text-[11px] font-mono text-cyan-300 hover:text-white font-medium"
+              title="Fit to width"
             >
               {Math.round(zoomScale * 100)}%
             </button>
             <button
-              onClick={() => setZoomScale((prev) => Math.min(1.3, Number((prev + 0.1).toFixed(2))))}
-              className="p-1 hover:text-white hover:bg-white/5 rounded"
+              onClick={() => setZoomScale((prev) => Math.min(1.25, Number((prev + 0.1).toFixed(2))))}
+              className="px-1.5 py-0.5 hover:text-white"
               title="Zoom in"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

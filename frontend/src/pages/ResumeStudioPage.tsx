@@ -7,7 +7,6 @@ import {
   FontSize,
   SectionKey,
   ATSScoreResponse,
-  CreateVersionRequest,
   GenerateSeedsResponse,
 } from '../types/resumeStudio';
 import { ResumeFormEditor } from '../components/resume/ResumeFormEditor';
@@ -19,12 +18,10 @@ import { TailoringModal } from '../components/resume/TailoringModal';
 import { ResumeVersionsModal } from '../components/resume/ResumeVersionsModal';
 import { VersionCompareModal } from '../components/resume/VersionCompareModal';
 import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
 import { api } from '../services/api';
 import {
   Sparkles,
   Upload,
-  Save,
   Layout,
   Gauge,
   ChevronDown,
@@ -144,7 +141,6 @@ export const ResumeStudioPage: React.FC = () => {
   // Autosave & Versioning State
   const [autosaveState, setAutosaveState] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [lastSavedTime, setLastSavedTime] = useState<string>('Just now');
-  const [isSavingVersion, setIsSavingVersion] = useState<boolean>(false);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [bannerNotice, setBannerNotice] = useState<string | null>(null);
   const [isMultiJDModalOpen, setIsMultiJDModalOpen] = useState<boolean>(false);
@@ -295,29 +291,6 @@ export const ResumeStudioPage: React.FC = () => {
     }
   }, [autosaveState]);
 
-  // Save Version to MongoDB Atlas
-  const handleSaveVersion = async () => {
-    setIsSavingVersion(true);
-    try {
-      const payload: CreateVersionRequest = {
-        label: 'Base Resume',
-        target_role: 'Full Stack Engineer',
-        data: currentResume,
-        ats_score: atsScoreData?.overall_score || 0,
-      };
-
-      await api.post('/api/v1/resume-studio/version', payload);
-      setBannerNotice('Version saved to your cloud profile!');
-      setTimeout(() => setBannerNotice(null), 3000);
-      refreshVersionsCount();
-    } catch (err) {
-      console.error('Failed to save version:', err);
-    } finally {
-      setIsSavingVersion(false);
-    }
-
-  };
-
   // Upload & Parse PDF/DOCX
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -348,38 +321,38 @@ export const ResumeStudioPage: React.FC = () => {
   };
 
   const renderJobDescriptionAccordion = () => (
-    <div className="bg-slate-900/70 border border-white/10 rounded-xl p-3.5">
+    <div className="bg-slate-900/60 border border-white/5 rounded-xl px-3 py-2 text-xs">
       <div
         onClick={() => setJdOpen(!jdOpen)}
-        className="flex items-center justify-between cursor-pointer select-none"
+        className="flex items-center justify-between cursor-pointer select-none text-slate-300 hover:text-white transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-cyan-400" />
-          <span className="text-xs font-bold text-white uppercase tracking-wider">
-            Target Job Description
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="font-semibold text-xs">
+            {jobDescription ? 'Target Job Description (Active)' : 'Target Job Description (Optional)'}
           </span>
           {jobDescription && (
-            <Badge variant="cyan" size="sm">
-              Active Match
-            </Badge>
+            <span className="px-1.5 py-0.2 rounded text-[10px] bg-cyan-500/20 text-cyan-300 font-mono">
+              40% Match Active
+            </span>
           )}
         </div>
-        <ChevronDown
-          className={`w-4 h-4 text-slate-400 transition-transform ${jdOpen ? 'rotate-180' : ''}`}
-        />
+        <div className="flex items-center gap-1 text-[11px] text-slate-400">
+          <span>{jdOpen ? 'Hide' : jobDescription ? 'Edit' : 'Paste JD'}</span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform ${jdOpen ? 'rotate-180' : ''}`}
+          />
+        </div>
       </div>
 
       {jdOpen && (
-        <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
-          <p className="text-[11px] text-slate-400">
-            Paste the JD below to activate the 40% keyword & semantic match scoring.
-          </p>
+        <div className="mt-2 pt-2 border-t border-white/5 space-y-1.5">
           <textarea
             rows={3}
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste job description requirements here..."
-            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 leading-relaxed"
+            placeholder="Paste job description requirements to evaluate ATS match..."
+            className="w-full bg-slate-950/80 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 leading-relaxed"
           />
         </div>
       )}
@@ -389,11 +362,11 @@ export const ResumeStudioPage: React.FC = () => {
   const renderRightPanel = () => (
     <>
       {/* Tab Switcher: Paper Preview vs ATS Score */}
-      <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-xl border border-white/10">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between bg-slate-900/80 p-1 rounded-xl border border-white/10">
+        <div className="flex items-center gap-1 w-full">
           <button
             onClick={() => setRightViewMode('preview')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               rightViewMode === 'preview'
                 ? 'bg-cyan-500 text-black shadow'
                 : 'text-slate-400 hover:text-white'
@@ -404,7 +377,7 @@ export const ResumeStudioPage: React.FC = () => {
           </button>
           <button
             onClick={() => setRightViewMode('score')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               rightViewMode === 'score'
                 ? 'bg-cyan-500 text-black shadow'
                 : 'text-slate-400 hover:text-white'
@@ -413,23 +386,16 @@ export const ResumeStudioPage: React.FC = () => {
             <Gauge className="w-3.5 h-3.5" />
             <span>ATS Score</span>
             {atsScoreData && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-black/20 text-black font-bold">
-                {atsScoreData.overall_score}
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  rightViewMode === 'score' ? 'bg-black/25 text-black' : 'bg-cyan-500/20 text-cyan-300'
+                }`}
+              >
+                {atsScoreData.overall_score}%
               </span>
             )}
           </button>
         </div>
-
-        {/* Quick Score Pill on Preview Mode */}
-        {rightViewMode === 'preview' && atsScoreData && (
-          <button
-            onClick={() => setRightViewMode('score')}
-            className="flex items-center gap-1 text-[11px] font-mono text-cyan-400 bg-cyan-950/40 px-2 py-1 rounded-md border border-cyan-500/20 hover:border-cyan-400"
-          >
-            <span>Score:</span>
-            <span className="font-bold">{atsScoreData.overall_score}/100</span>
-          </button>
-        )}
       </div>
 
       {/* Conditional View */}
@@ -463,65 +429,71 @@ export const ResumeStudioPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-4 pt-2">
       {/* Top Header Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-white/10">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-              Resume Studio
-            </h1>
-            <Badge variant="cyan" size="sm">
-              Live ATS
-            </Badge>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold text-white tracking-tight">
+            Resume Studio
+          </h1>
+          {/* Subtle Autosave Indicator */}
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 border-l border-white/10 pl-3">
+            {autosaveState === 'saving' ? (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                <span className="text-cyan-400">Saving...</span>
+              </>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-slate-400">{lastSavedTime || 'Saved'}</span>
+              </>
+            )}
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Build, edit, and score ATS-friendly resumes in real-time.
-          </p>
         </div>
 
         {/* Global Action Buttons & View Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Workspace Layout Mode Switcher */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-white/10 shadow-inner">
+          <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-white/10 text-xs">
             <button
               type="button"
               onClick={() => setLayoutMode('split')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all ${
                 layoutMode === 'split'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-md shadow-cyan-500/20'
+                  ? 'bg-cyan-500 text-black shadow font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Side-by-side Editor & Preview (Balanced 50/50)"
+              title="Side-by-side Editor & Preview"
             >
               <Columns className="w-3.5 h-3.5" />
-              <span>Split 50/50</span>
+              <span>Split</span>
             </button>
             <button
               type="button"
               onClick={() => setLayoutMode('editor')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all ${
                 layoutMode === 'editor'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-md shadow-cyan-500/20'
+                  ? 'bg-cyan-500 text-black shadow font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Spacious Full-Width Editor Focus Mode"
+              title="Full-Width Editor"
             >
               <FileEdit className="w-3.5 h-3.5" />
-              <span>Editor Only</span>
+              <span>Editor</span>
             </button>
             <button
               type="button"
               onClick={() => setLayoutMode('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all ${
                 layoutMode === 'preview'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-md shadow-cyan-500/20'
+                  ? 'bg-cyan-500 text-black shadow font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Full-Size Paper Preview & Live ATS Score"
+              title="Full-Size Preview"
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>Preview & ATS</span>
+              <span>Preview</span>
             </button>
           </div>
 
@@ -535,35 +507,24 @@ export const ResumeStudioPage: React.FC = () => {
           />
 
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadLoading}
-            className="text-xs flex items-center gap-1.5"
+            className="text-xs flex items-center gap-1 py-1 px-2 text-slate-300 hover:text-white"
           >
             <Upload className={`w-3.5 h-3.5 ${uploadLoading ? 'animate-spin' : ''}`} />
-            <span>{uploadLoading ? 'Parsing...' : 'Import'}</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveVersion}
-            disabled={isSavingVersion}
-            className="text-xs flex items-center gap-1.5"
-          >
-            <Save className={`w-3.5 h-3.5 ${isSavingVersion ? 'animate-spin' : ''}`} />
-            <span>Save</span>
+            <span>{uploadLoading ? 'Importing...' : 'Import'}</span>
           </Button>
 
           {/* Versions Drawer Trigger Button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setIsVersionsModalOpen(true)}
-            className="text-xs flex items-center gap-1.5 text-violet-400 border-violet-500/30 hover:bg-violet-500/10"
+            className="text-xs flex items-center gap-1 py-1 px-2 text-slate-300 hover:text-white"
           >
-            <History className="w-3.5 h-3.5" />
+            <History className="w-3.5 h-3.5 text-violet-400" />
             <span>Versions</span>
             {savedVersionsCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono font-bold">
@@ -574,12 +535,12 @@ export const ResumeStudioPage: React.FC = () => {
 
           {/* Multi-JD Comparison Trigger Button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setIsMultiJDModalOpen(true)}
-            className="text-xs flex items-center gap-1.5 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10"
+            className="text-xs flex items-center gap-1 py-1 px-2 text-slate-300 hover:text-white"
           >
-            <Layers className="w-3.5 h-3.5" />
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
             <span>Compare JDs</span>
           </Button>
 
@@ -596,7 +557,7 @@ export const ResumeStudioPage: React.FC = () => {
 
       {/* Banner Notice Alert if present */}
       {bannerNotice && (
-        <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between">
+        <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between">
           <span>{bannerNotice}</span>
           <button onClick={() => setBannerNotice(null)} className="text-slate-400 hover:text-white">
             ✕
@@ -606,9 +567,9 @@ export const ResumeStudioPage: React.FC = () => {
 
       {/* Workspace Area: Controlled by layoutMode */}
       {layoutMode === 'split' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
           {/* Left Column: Form Editor (50% on LG) */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {renderJobDescriptionAccordion()}
             <ResumeFormEditor
               resume={currentResume}
@@ -627,26 +588,12 @@ export const ResumeStudioPage: React.FC = () => {
           </div>
 
           {/* Right Column: Live Paper Preview & ATS Score Panel (50% on LG) */}
-          <div className="sticky top-20 space-y-4 max-h-[calc(100vh-5.5rem)] flex flex-col">
+          <div className="sticky top-20 space-y-3 max-h-[calc(100vh-5.5rem)] flex flex-col">
             {renderRightPanel()}
           </div>
         </div>
       ) : layoutMode === 'editor' ? (
-        <div className="max-w-4xl mx-auto space-y-4 w-full">
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>
-                <strong>Editor Focus Mode:</strong> Full width unlocked. Side panels hidden for spacious writing.
-              </span>
-            </span>
-            <button
-              onClick={() => setLayoutMode('split')}
-              className="underline hover:text-white shrink-0 ml-2 font-medium"
-            >
-              Switch to Split
-            </button>
-          </div>
+        <div className="max-w-4xl mx-auto space-y-3 w-full">
           {renderJobDescriptionAccordion()}
           <ResumeFormEditor
             resume={currentResume}
@@ -664,21 +611,7 @@ export const ResumeStudioPage: React.FC = () => {
           />
         </div>
       ) : (
-        <div className="max-w-5xl mx-auto space-y-4 w-full">
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300">
-            <span className="flex items-center gap-1.5">
-              <Eye className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>
-                <strong>Full Preview & ATS Mode:</strong> High-definition inspection of your resume formatting and ATS score.
-              </span>
-            </span>
-            <button
-              onClick={() => setLayoutMode('split')}
-              className="underline hover:text-white shrink-0 ml-2 font-medium"
-            >
-              Switch to Split
-            </button>
-          </div>
+        <div className="max-w-5xl mx-auto space-y-3 w-full">
           {renderRightPanel()}
         </div>
       )}

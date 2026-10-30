@@ -38,8 +38,8 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
 
   if (loading) {
     return (
-      <Card padding="md" className="border-cyan-500/20 bg-slate-900/60 text-center py-12">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+      <Card padding="sm" className="border-cyan-500/20 bg-slate-900/60 text-center py-8">
+        <div className="w-7 h-7 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">
           Calculating ATS score...
         </p>
@@ -49,8 +49,8 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
 
   if (!scoreData) {
     return (
-      <Card padding="md" className="border-white/10 bg-slate-900/60 text-center py-10">
-        <Target className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+      <Card padding="sm" className="border-white/5 bg-slate-900/60 text-center py-8">
+        <Target className="w-7 h-7 text-slate-500 mx-auto mb-2" />
         <h4 className="text-sm font-semibold text-white">ATS Scoring Ready</h4>
         <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
           Start typing or paste a job description to calculate your live compatibility score.
@@ -70,10 +70,10 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
   ].filter((s) => s.show);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Top Main Score Card */}
-      <Card glow="cyan" padding="md" className="border-cyan-500/20 bg-slate-900/70 relative">
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+      <Card glow="cyan" padding="sm" className="border-cyan-500/20 bg-slate-900/70 relative">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10 mb-2">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold text-white uppercase tracking-wider">ATS Score</span>
@@ -84,9 +84,9 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
         </div>
 
         {/* Circular Gauge */}
-        <div className="flex flex-col items-center justify-center py-2">
-          <ScoreGauge score={overall_score} size={150} strokeWidth={12} label={summary_verdict} />
-          <p className="text-[11px] text-slate-400 mt-2 text-center">
+        <div className="flex flex-col items-center justify-center py-1">
+          <ScoreGauge score={overall_score} size={130} strokeWidth={11} label={summary_verdict} />
+          <p className="text-[11px] text-slate-400 mt-1.5 text-center">
             {is_tailored
               ? '40% JD Match • 60% Content & Formatting'
               : 'Redistributed: 25% Completeness, Metrics, Verbs, Format'}
@@ -98,7 +98,7 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
               variant="primary"
               size="sm"
               onClick={onOpenTailor}
-              className="mt-3 text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+              className="mt-2.5 text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Tailor to this JD</span>
@@ -107,7 +107,7 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
         </div>
 
         {/* Section Progress Bars */}
-        <div className="mt-4 space-y-2.5 pt-3 border-t border-white/10">
+        <div className="mt-3 space-y-2 pt-2.5 border-t border-white/10">
           {sections.map(({ key, item }) => (
             <div key={key} className="text-xs">
               <div className="flex justify-between items-center text-slate-300 mb-1">
@@ -136,10 +136,10 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
         </div>
 
         {/* "Why This Score" Collapsible Drawer */}
-        <div className="mt-4 pt-2 border-t border-white/10">
+        <div className="mt-3 pt-2 border-t border-white/10">
           <button
             onClick={() => setWhyScoreOpen(!whyScoreOpen)}
-            className="w-full flex items-center justify-between text-xs text-cyan-400 hover:text-cyan-300 font-medium py-1 transition-colors"
+            className="w-full flex items-center justify-between text-xs text-cyan-400 hover:text-cyan-300 font-medium py-0.5 transition-colors"
           >
             <span className="flex items-center gap-1.5">
               <HelpCircle className="w-3.5 h-3.5" /> Why this score?
@@ -153,10 +153,10 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="pt-2 space-y-2 text-[11px] text-slate-300 overflow-hidden"
+                className="pt-2 space-y-1.5 text-[11px] text-slate-300 overflow-hidden"
               >
                 {sections.map(({ key, item }) => (
-                  <div key={key} className="p-2 rounded-lg bg-white/[0.02] border border-white/5 flex justify-between">
+                  <div key={key} className="p-1.5 rounded-lg bg-white/[0.02] border border-white/5 flex justify-between">
                     <span>{item.name}</span>
                     <span className="font-mono text-cyan-300">
                       {item.score_percentage.toFixed(0)}% ({item.points_earned.toFixed(1)} pts)
@@ -171,11 +171,11 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
 
       {/* Top 3 Prioritized Action Items */}
       {top_action_items.length > 0 && (
-        <Card padding="md" className="border-amber-500/20 bg-slate-900/60">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 mb-2">
+        <Card padding="sm" className="border-amber-500/20 bg-slate-900/60">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 mb-1.5">
             <Zap className="w-3.5 h-3.5" /> Top Action Items
           </div>
-          <ul className="space-y-1.5 text-xs text-slate-300">
+          <ul className="space-y-1 text-xs text-slate-300">
             {top_action_items.map((item, idx) => (
               <li key={idx} className="flex items-start gap-1.5 leading-snug">
                 <span className="text-amber-400 font-mono font-bold">{idx + 1}.</span>
@@ -187,8 +187,8 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
       )}
 
       {/* Tabs for Skill Matching & Weak-Line Diagnostics */}
-      <Card padding="md" className="border-white/10 bg-slate-900/60">
-        <div className="flex items-center gap-2 pb-2 border-b border-white/10 mb-3">
+      <Card padding="sm" className="border-white/5 bg-slate-900/60">
+        <div className="flex items-center gap-2 pb-2 border-b border-white/10 mb-2.5">
           <button
             onClick={() => setActiveTab('skills')}
             className={`text-xs px-2.5 py-1 rounded-lg transition-colors font-medium ${
@@ -213,7 +213,7 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
 
         {/* Tab 1: Skill Match Chips */}
         {activeTab === 'skills' && (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {matched_skills.length === 0 && partial_skills.length === 0 && missing_skills.length === 0 ? (
               <p className="text-[11px] text-slate-400 text-center py-2">
                 Paste a Job Description to see matched and missing skills.
@@ -222,7 +222,7 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
               <>
                 {matched_skills.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-mono uppercase text-emerald-400 flex items-center gap-1 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase text-emerald-400 flex items-center gap-1 mb-1">
                       <CheckCircle2 className="w-3 h-3" /> Matched ({matched_skills.length})
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -241,7 +241,7 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
 
                 {partial_skills.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-mono uppercase text-amber-400 flex items-center gap-1 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase text-amber-400 flex items-center gap-1 mb-1">
                       <AlertTriangle className="w-3 h-3" /> Related ({partial_skills.length})
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -260,7 +260,7 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
 
                 {missing_skills.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-mono uppercase text-rose-400 flex items-center gap-1 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase text-rose-400 flex items-center gap-1 mb-1">
                       <XCircle className="w-3 h-3" /> Missing ({missing_skills.length})
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -273,22 +273,6 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
                         </span>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {missing_skills.length > 0 && onPracticeWeakSpots && (
-                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between mt-2">
-                    <span className="text-[11px] text-amber-300">Test knowledge on missing skills</span>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={onPracticeWeakSpots}
-                      disabled={isPracticing}
-                      className="text-xs py-0.5 px-2 bg-amber-600 hover:bg-amber-500 text-white shrink-0"
-                      title="Start mock interview targeting these resume gaps"
-                    >
-                      {isPracticing ? 'Preparing...' : 'Practice Weak Spots'}
-                    </Button>
                   </div>
                 )}
               </>
@@ -315,29 +299,14 @@ export const ATSScorePanel: React.FC<ATSScorePanelProps> = ({
                     <p className="text-cyan-300 text-[10px] leading-snug">{wl.recommendation}</p>
                   </div>
                 ))}
-                {onPracticeWeakSpots && (
-                  <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-between mt-2">
-                    <span className="text-[11px] text-rose-300">Defend claims in a mock interview</span>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={onPracticeWeakSpots}
-                      disabled={isPracticing}
-                      className="text-xs py-0.5 px-2 bg-rose-600 hover:bg-rose-500 text-white shrink-0"
-                      title="Start mock interview targeting these resume gaps"
-                    >
-                      {isPracticing ? 'Preparing...' : 'Practice Weak Spots'}
-                    </Button>
-                  </div>
-                )}
               </>
             )}
           </div>
         )}
 
-        {/* Overall Bridge Action */}
+        {/* Dedicated Targeted Interview Action */}
         {onPracticeWeakSpots && (
-          <div className="pt-3 border-t border-white/10 mt-3 flex items-center justify-between">
+          <div className="pt-2.5 border-t border-white/10 mt-2.5 flex items-center justify-between">
             <span className="text-[11px] text-slate-400 flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-cyan-400" />
               Targeted Interview
