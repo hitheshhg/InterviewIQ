@@ -162,7 +162,7 @@ export const WebcamVisionTracker: React.FC<WebcamVisionTrackerProps> = ({
 
   return (
     <div
-      className={`relative rounded-2xl overflow-hidden border border-white/10 bg-slate-900/90 shadow-2xl backdrop-blur-xl ${className}`}
+      className={`relative rounded-2xl overflow-hidden border border-white/10 bg-slate-900/90 shadow-2xl backdrop-blur-xl flex flex-col justify-between ${className}`}
     >
       {/* Top HUD Status Bar */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
@@ -190,7 +190,7 @@ export const WebcamVisionTracker: React.FC<WebcamVisionTrackerProps> = ({
       </div>
 
       {/* Video Viewport / Disabled Fallback */}
-      <div className="relative aspect-video w-full flex items-center justify-center bg-black/60">
+      <div className="relative flex-1 min-h-[220px] w-full flex items-center justify-center bg-black/60 overflow-hidden">
         {cameraEnabled ? (
           <>
             <video

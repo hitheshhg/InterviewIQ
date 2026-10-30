@@ -8,13 +8,11 @@ import {
   Clock,
   Award,
   AlertCircle,
-  CheckCircle2,
   RefreshCw,
   Zap,
   TrendingUp,
   Volume2,
   VolumeX,
-  Radio,
   Sliders,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
@@ -94,6 +92,7 @@ export const InterviewRoomPage: React.FC = () => {
   >([]);
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rightPanelTab, setRightPanelTab] = useState<'camera' | 'scorecard'>('camera');
 
   // Speech Hooks
   const {
@@ -113,7 +112,6 @@ export const InterviewRoomPage: React.FC = () => {
     startListening,
     stopListening,
     resetTranscript,
-    isSupported: isSttSupported,
     error: sttError,
   } = useSpeechRecognition(handleSpeechFinal);
 
@@ -321,7 +319,7 @@ export const InterviewRoomPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full py-4 space-y-4">
       {/* =========================================================================
           VIEW 1: SETUP SCREEN
          ========================================================================= */}
@@ -329,28 +327,23 @@ export const InterviewRoomPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="max-w-3xl mx-auto"
+          transition={{ duration: 0.3 }}
+          className="max-w-2xl mx-auto"
         >
-          <div className="border-b border-white/10 pb-4 mb-6">
+          <div className="text-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              AI Interview Room
+              Start interview
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Practice technical interviews with adaptive voice AI.
+              Adaptive technical mock session
             </p>
           </div>
 
-          <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 backdrop-blur-xl">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-cyan-400" />
-              Configure Interview Session
-            </h2>
-
+          <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 backdrop-blur-xl space-y-5">
             {/* Target Role Selector */}
-            <div className="mb-6">
+            <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                Target Role Preset
+                Target role
               </label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {PRESET_ROLES.map((role) => (
@@ -375,30 +368,30 @@ export const InterviewRoomPage: React.FC = () => {
                 type="text"
                 value={customRole}
                 onChange={(e) => setCustomRole(e.target.value)}
-                placeholder="Or specify custom position (e.g. Lead SRE / Cloud Architect)..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50"
+                placeholder="Or specify custom position..."
+                className="w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500/50"
               />
             </div>
 
-            {/* Interview Length & Initial Difficulty */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            {/* Length & Difficulty */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Session Length
+                  Questions
                 </label>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   {[3, 5, 8].map((qCount) => (
                     <button
                       key={qCount}
                       type="button"
                       onClick={() => setTotalQuestions(qCount)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                         totalQuestions === qCount
                           ? 'bg-violet-500/20 border-violet-500 text-violet-300'
                           : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
                       }`}
                     >
-                      {qCount} Questions
+                      {qCount}
                     </button>
                   ))}
                 </div>
@@ -406,15 +399,15 @@ export const InterviewRoomPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Starting Difficulty
+                  Difficulty
                 </label>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   {(['easy', 'medium', 'hard'] as const).map((diff) => (
                     <button
                       key={diff}
                       type="button"
                       onClick={() => setInitialDifficulty(diff)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold capitalize border transition-all ${
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-semibold capitalize border transition-all ${
                         initialDifficulty === diff
                           ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300'
                           : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
@@ -427,28 +420,26 @@ export const InterviewRoomPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Voice Mode Preference */}
-            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between mb-6">
+            {/* Hands-free Voice Toggle */}
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
                   <Mic className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Enable Hands-Free Voice Mode</div>
-                  <div className="text-[11px] text-slate-400">
-                    Interviewer speaks questions aloud and transcribes your microphone input.
-                  </div>
+                  <div className="text-xs font-bold text-white">Hands-free voice mode</div>
+                  <div className="text-[11px] text-slate-400">AI speaks questions; mic transcribes answers</div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsVoiceMode(!isVoiceMode)}
-                className={`w-12 h-6 rounded-full transition-colors relative p-1 ${
+                className={`w-11 h-6 rounded-full transition-colors relative p-1 ${
                   isVoiceMode ? 'bg-cyan-500' : 'bg-slate-700'
                 }`}
               >
                 <motion.div
-                  animate={{ x: isVoiceMode ? 24 : 0 }}
+                  animate={{ x: isVoiceMode ? 20 : 0 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   className="w-4 h-4 rounded-full bg-white shadow-md"
                 />
@@ -479,37 +470,28 @@ export const InterviewRoomPage: React.FC = () => {
       )}
 
       {/* =========================================================================
-          VIEW 2: ACTIVE INTERVIEW ROOM WITH LIVING AI ORB & VOICE CONTROLS
+          VIEW 2: ACTIVE INTERVIEW ROOM WITH BALANCED DUAL VIDEO STAGE
          ========================================================================= */}
       {sessionActive && currentQuestion && (
-        <div className="space-y-6">
-          {/* Header Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                {isListening ? (
-                  <Mic className="w-5 h-5 animate-pulse text-emerald-400" />
-                ) : isSpeaking ? (
-                  <Volume2 className="w-5 h-5 animate-pulse text-sky-400" />
-                ) : (
-                  <Radio className="w-5 h-5 text-cyan-400" />
-                )}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">
-                    Question {currentQuestionIndex} of {totalQuestions}
-                  </span>
-                  <Badge variant={getDifficultyColor(currentDifficulty) as any} size="sm">
-                    {currentDifficulty.toUpperCase()}
-                  </Badge>
-                </div>
-                <div className="text-xs text-slate-400">{customRole || targetRole}</div>
+        <div className="space-y-4">
+          {/* Sleek Minimal Header Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-bold text-white font-mono">
+                  Q{currentQuestionIndex}/{totalQuestions}
+                </span>
+                <Badge variant={getDifficultyColor(currentDifficulty) as any} size="sm">
+                  {currentDifficulty.toUpperCase()}
+                </Badge>
+                <span className="hidden sm:inline text-xs text-slate-400 font-medium">
+                  {customRole || targetRole}
+                </span>
               </div>
             </div>
 
             {/* Stepper Progress Line */}
-            <div className="hidden sm:block flex-1 max-w-xs mx-4">
+            <div className="hidden md:block flex-1 max-w-xs mx-4">
               <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-cyan-400 to-violet-400 h-full transition-all duration-500"
@@ -519,13 +501,13 @@ export const InterviewRoomPage: React.FC = () => {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Voice / Text Mode Toggle Pill */}
               <div className="flex items-center p-0.5 rounded-lg bg-black/40 border border-white/10 text-xs">
                 <button
                   type="button"
                   onClick={() => setIsVoiceMode(true)}
-                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
+                  className={`px-2 py-1 rounded-md transition-all flex items-center gap-1 ${
                     isVoiceMode
                       ? 'bg-cyan-500 text-white font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white'
@@ -540,7 +522,7 @@ export const InterviewRoomPage: React.FC = () => {
                     stopListening();
                     stopSpeaking();
                   }}
-                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
+                  className={`px-2 py-1 rounded-md transition-all flex items-center gap-1 ${
                     !isVoiceMode
                       ? 'bg-violet-500 text-white font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white'
@@ -551,40 +533,36 @@ export const InterviewRoomPage: React.FC = () => {
               </div>
 
               {/* Timer */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-cyan-300 font-mono text-xs">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-cyan-300 font-mono text-xs">
                 <Clock className="w-3.5 h-3.5" />
                 {formatTimer(timerSeconds)}
               </div>
 
-              <Button variant="danger" size="sm" onClick={handleEndEarly}>
-                End interview
+              <Button variant="danger" size="sm" onClick={handleEndEarly} className="text-xs px-2.5 py-1">
+                End
               </Button>
             </div>
           </div>
 
-          {/* Main Stage: AI Interviewer Orb + Question + Candidate Response */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left 7 Columns: Interviewer Stage & Candidate Input */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Living AI Interviewer Card with AI Orb */}
-              <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 relative overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
-                      AI Interviewer Stage
-                    </span>
-                  </div>
+          {/* Balanced Dual Stage: AI Interviewer (Left) & Candidate Stage (Right) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Left Stage Tile: AI Interviewer */}
+            <div className="h-[360px] rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden">
+              {/* Top Row: AI Status & Audio Actions */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
+                    AI Interviewer
+                  </span>
                   <Badge variant="violet" size="sm">
                     {currentQuestion.question_category.replace('_', ' ').toUpperCase()}
                   </Badge>
                 </div>
 
-                {/* Central Living AI Orb */}
-                <div className="py-4 flex flex-col items-center justify-center">
-                  <AIOrb
-                    state={getOrbState()}
-                    size={120}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
                     onClick={() => {
                       if (isSpeaking) {
                         stopSpeaking();
@@ -592,227 +570,123 @@ export const InterviewRoomPage: React.FC = () => {
                         speak(currentQuestion.question_text);
                       }
                     }}
-                  />
-
-                  {/* Audio Controls below Orb */}
-                  <div className="mt-3 flex items-center gap-2">
+                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 hover:text-white flex items-center gap-1 transition-colors"
+                    title={isSpeaking ? 'Stop speaking' : 'Replay question audio'}
+                  >
                     {isSpeaking ? (
-                      <button
-                        type="button"
-                        onClick={stopSpeaking}
-                        className="px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-1 hover:bg-rose-500/30 transition-colors"
-                      >
-                        <VolumeX className="w-3.5 h-3.5" /> Stop Voice
-                      </button>
+                      <>
+                        <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+                        <span className="text-[11px]">Stop</span>
+                      </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => speak(currentQuestion.question_text)}
-                        className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs flex items-center gap-1 hover:bg-cyan-500/30 transition-colors"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" /> Replay Question
-                      </button>
+                      <>
+                        <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                        <span className="text-[11px]">Replay</span>
+                      </>
                     )}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setAutoSpeakQuestion(!autoSpeakQuestion)}
-                      className={`px-2.5 py-1 rounded-full border text-[11px] transition-colors ${
-                        autoSpeakQuestion
-                          ? 'bg-white/10 border-white/20 text-slate-200'
-                          : 'bg-transparent border-white/5 text-slate-500'
-                      }`}
-                    >
-                      Auto-Read: {autoSpeakQuestion ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Formatted Question Text */}
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5 mt-2">
-                  <h3 className="text-base sm:text-lg font-medium text-white leading-relaxed">
-                    "{currentQuestion.question_text}"
-                  </h3>
-
-                  {currentQuestion.context_note && (
-                    <div className="mt-3 pt-3 border-t border-white/5 flex items-start gap-2 text-xs text-slate-400">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong className="text-slate-300">Context:</strong> {currentQuestion.context_note}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {/* Candidate Response Card */}
-              <Card padding="lg" className="border-white/10 bg-slate-900/60">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                      Your Response
-                    </label>
-                    {isVoiceMode && isListening && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        Transcribing Voice Live
-                      </span>
-                    )}
-                  </div>
                   <button
                     type="button"
-                    onClick={handleFillSample}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 underline font-medium flex items-center gap-1 transition-colors"
+                    onClick={() => setAutoSpeakQuestion(!autoSpeakQuestion)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono border transition-colors ${
+                      autoSpeakQuestion
+                        ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                        : 'bg-white/5 border-white/10 text-slate-500'
+                    }`}
+                    title="Automatically read question aloud when loaded"
                   >
-                    <Zap className="w-3.5 h-3.5" />
-                    Use sample
+                    Auto: {autoSpeakQuestion ? 'ON' : 'OFF'}
                   </button>
                 </div>
+              </div>
 
-                {/* Voice Mode Mic Banner & Visualizer */}
-                {isVoiceMode && (
-                  <div className="mb-3 p-3.5 rounded-xl bg-black/50 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={handleToggleVoiceRecording}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                          isListening
-                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50 animate-pulse'
-                            : 'bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300'
-                        }`}
-                        title={isListening ? 'Click to stop recording' : 'Click to start speaking'}
-                      >
-                        {isListening ? (
-                          <MicOff className="w-6 h-6" />
-                        ) : (
-                          <Mic className="w-6 h-6 animate-pulse" />
-                        )}
-                      </button>
-                      <div>
-                        <div className="text-xs font-bold text-white">
-                          {isListening ? 'Microphone Active' : 'Voice Input Standby'}
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                          {isListening
-                            ? 'Speak now — audio is transcribed into your response.'
-                            : isSttSupported
-                            ? 'Click microphone to answer via voice.'
-                            : 'Browser voice recognition not detected; type in Text Mode.'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Dynamic Audio Visualizer */}
-                    <VoiceVisualizer
-                      isActive={isListening || isSpeaking}
-                      barCount={18}
-                      mode={isSpeaking ? 'interviewer' : 'user'}
-                      className="w-full sm:w-48"
-                    />
-                  </div>
-                )}
-
-                {/* Response Textarea / Live Transcript */}
-                <div className="relative">
-                  <textarea
-                    value={answerText}
-                    onChange={(e) => setAnswerText(e.target.value)}
-                    placeholder={
-                      isVoiceMode
-                        ? 'Click the microphone above to speak your response, or type directly here...'
-                        : 'Articulate your technical response here. Describe architecture, tradeoffs, design patterns, and edge cases...'
+              {/* Center: Living AI Orb */}
+              <div className="py-1 flex items-center justify-center">
+                <AIOrb
+                  state={getOrbState()}
+                  size={74}
+                  onClick={() => {
+                    if (isSpeaking) {
+                      stopSpeaking();
+                    } else {
+                      speak(currentQuestion.question_text);
                     }
-                    rows={6}
-                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50 leading-relaxed resize-y font-sans"
-                  />
+                  }}
+                />
+              </div>
 
-                  {/* Interim Real-time speech stream overlay */}
-                  {interimTranscript && (
-                    <div className="mt-1 px-3 py-1.5 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-emerald-300 text-xs italic">
-                      Transcribing: "{interimTranscript}"
-                    </div>
-                  )}
-                </div>
-
-                {sttError && (
-                  <div className="mt-2 p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {sttError}
+              {/* Bottom: Question Text */}
+              <div className="p-3.5 rounded-xl bg-black/40 border border-white/5">
+                <h3 className="text-sm sm:text-base font-medium text-white leading-relaxed">
+                  "{currentQuestion.question_text}"
+                </h3>
+                {currentQuestion.context_note && (
+                  <div className="mt-1.5 pt-1.5 border-t border-white/5 flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <Sparkles className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                    <span className="truncate">{currentQuestion.context_note}</span>
                   </div>
                 )}
-
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                  <span className="text-xs text-slate-400">
-                    {answerText.trim() ? answerText.trim().split(/\s+/).length : 0} words • {answerText.length} characters
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    {isListening && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={stopListening}
-                        className="text-xs"
-                      >
-                        Done speaking
-                      </Button>
-                    )}
-
-                    <Button
-                      variant="primary"
-                      size="md"
-                      onClick={handleSubmitAnswer}
-                      disabled={submitting || answerText.trim().length < 5}
-                      className="flex items-center gap-2"
-                    >
-                      {submitting ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Evaluating...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Submit answer
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {errorMessage && (
-                  <div className="mt-3 p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {errorMessage}
-                  </div>
-                )}
-              </Card>
+              </div>
             </div>
 
-            {/* Right 5 Columns: Multimodal Vision HUD & Real-Time Scorecard Drawer */}
-            <div className="lg:col-span-5 space-y-6" ref={feedbackRef}>
-              {/* Computer Vision & Posture HUD */}
-              <WebcamVisionTracker
-                isActive={sessionActive}
-                deliveryMetrics={deliveryMetrics}
-                onRecordEyeContact={recordEyeContact}
-                onUpdatePosture={updatePosture}
-              />
+            {/* Right Stage Tile: Candidate Camera HUD / Feedback Scorecard */}
+            <div className="h-[360px] rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl relative overflow-hidden flex flex-col" ref={feedbackRef}>
+              {/* Tab Header if latest evaluation exists */}
+              {latestEvaluation && (
+                <div className="px-3 py-2 bg-black/70 border-b border-white/10 flex items-center justify-between text-xs z-20">
+                  <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelTab('camera')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                        rightPanelTab === 'camera'
+                          ? 'bg-cyan-500 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Camera HUD
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelTab('scorecard')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${
+                        rightPanelTab === 'scorecard'
+                          ? 'bg-violet-500 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span>Rubric</span>
+                      <span className="font-bold text-cyan-300">
+                        {latestEvaluation.average_score.toFixed(1)}/10
+                      </span>
+                    </button>
+                  </div>
 
-              {latestEvaluation ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card glow="violet" padding="lg" className="border-violet-500/20 bg-slate-900/60">
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                  <span className="text-[11px] text-slate-400">
+                    Turn {turnHistory.length} Score
+                  </span>
+                </div>
+              )}
+
+              {/* Tile Content */}
+              <div className="flex-1 min-h-0">
+                {rightPanelTab === 'camera' || !latestEvaluation ? (
+                  <WebcamVisionTracker
+                    isActive={sessionActive}
+                    deliveryMetrics={deliveryMetrics}
+                    onRecordEyeContact={recordEyeContact}
+                    onUpdatePosture={updatePosture}
+                    className="h-full border-0 rounded-none shadow-none bg-transparent"
+                  />
+                ) : (
+                  <div className="h-full overflow-y-auto p-4 space-y-3 text-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
                       <div>
-                        <span className="text-xs font-mono text-violet-400 uppercase tracking-wider">
-                          Turn Feedback
-                        </span>
-                        <h4 className="text-sm font-bold text-white">5-Dimension Rubric</h4>
+                        <div className="text-[11px] font-mono text-violet-400 uppercase">
+                          Turn {turnHistory.length} Rubric
+                        </div>
+                        <div className="text-sm font-bold text-white">Evaluation Breakdown</div>
                       </div>
                       <div className="text-right">
                         <span className="text-2xl font-black text-cyan-400">
@@ -823,22 +697,22 @@ export const InterviewRoomPage: React.FC = () => {
                     </div>
 
                     {/* 5 Rubric Bars */}
-                    <div className="space-y-3 mb-6">
+                    <div className="space-y-2">
                       {[
                         { label: 'Relevance', score: latestEvaluation.scores.relevance },
                         { label: 'Technical Accuracy', score: latestEvaluation.scores.technical_accuracy },
                         { label: 'Clarity & Structure', score: latestEvaluation.scores.clarity },
                         { label: 'Technical Depth', score: latestEvaluation.scores.depth },
-                        { label: 'Confidence & Conviction', score: latestEvaluation.scores.confidence },
+                        { label: 'Confidence', score: latestEvaluation.scores.confidence },
                       ].map((rubric) => (
-                        <div key={rubric.label} className="text-xs">
-                          <div className="flex justify-between text-slate-300 mb-1">
+                        <div key={rubric.label}>
+                          <div className="flex justify-between text-slate-300 text-[11px] mb-0.5">
                             <span>{rubric.label}</span>
                             <span className="font-semibold text-white">{rubric.score}/10</span>
                           </div>
                           <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
                             <div
-                              className={`h-full ${getScoreColor(rubric.score)} transition-all duration-500`}
+                              className={`h-full ${getScoreColor(rubric.score)}`}
                               style={{ width: `${(rubric.score / 10) * 100}%` }}
                             />
                           </div>
@@ -846,60 +720,187 @@ export const InterviewRoomPage: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Feedback Text */}
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 mb-4 text-xs text-slate-300 leading-relaxed">
-                      <strong className="text-white block mb-1">Evaluator Notes:</strong>
+                    {/* Feedback Note */}
+                    <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/5 text-[11px] text-slate-300 leading-relaxed">
+                      <strong className="text-white block mb-0.5">Evaluator Notes:</strong>
                       {latestEvaluation.feedback}
                     </div>
-
-                    {/* Strengths & Improvements */}
-                    <div className="space-y-3 text-xs">
-                      <div>
-                        <span className="font-semibold text-emerald-400 flex items-center gap-1.5 mb-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Strengths
-                        </span>
-                        <ul className="list-disc list-inside text-slate-300 space-y-0.5 pl-1">
-                          {latestEvaluation.strengths.map((str, i) => (
-                            <li key={i}>{str}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <span className="font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
-                          <AlertCircle className="w-3.5 h-3.5" /> Areas for Growth
-                        </span>
-                        <ul className="list-disc list-inside text-slate-300 space-y-0.5 pl-1">
-                          {latestEvaluation.areas_for_improvement.map((imp, i) => (
-                            <li key={i}>{imp}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {latestEvaluation.ideal_answer_summary && (
-                        <div className="pt-2 border-t border-white/5">
-                          <span className="font-semibold text-cyan-400 block mb-1">
-                            Target L5 / Senior Standard:
-                          </span>
-                          <p className="text-slate-400 italic">
-                            "{latestEvaluation.ideal_answer_summary}"
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </motion.div>
-              ) : (
-                <Card padding="lg" className="border-white/5 bg-slate-900/40 text-center py-12">
-                  <Sparkles className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                  <h4 className="text-sm font-semibold text-slate-400">Waiting for First Response</h4>
-                  <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
-                    Answer Question 1 via voice or text to see real-time rubric scores and adaptive question updates.
-                  </p>
-                </Card>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Bottom Response Console */}
+          <Card padding="md" className="border-white/10 bg-slate-900/60 backdrop-blur-xl">
+            {isVoiceMode ? (
+              <div className="space-y-3">
+                {/* Mic Status & Visualizer Row */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleToggleVoiceRecording}
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
+                        isListening
+                          ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50 animate-pulse'
+                          : 'bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300'
+                      }`}
+                      title={isListening ? 'Stop recording' : 'Click to answer via voice'}
+                    >
+                      {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                    </button>
+
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <span>{isListening ? 'Listening...' : 'Voice mode ready'}</span>
+                        {isListening && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {isListening
+                          ? 'Speak your answer — real-time transcription below'
+                          : 'Click mic to speak, or edit response directly'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <VoiceVisualizer
+                    isActive={isListening || isSpeaking}
+                    barCount={14}
+                    mode={isSpeaking ? 'interviewer' : 'user'}
+                    className="hidden sm:block w-32"
+                  />
+                </div>
+
+                {/* Live Transcript / Response Textarea */}
+                <div className="relative">
+                  <textarea
+                    value={answerText}
+                    onChange={(e) => setAnswerText(e.target.value)}
+                    placeholder={
+                      isListening
+                        ? 'Listening... words will stream here as you speak.'
+                        : 'Click the microphone above to speak, or type your response here...'
+                    }
+                    rows={3}
+                    className="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50 leading-relaxed resize-none font-sans"
+                  />
+
+                  {interimTranscript && (
+                    <div className="mt-1 px-3 py-1 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-emerald-300 text-xs italic">
+                      Transcribing: "{interimTranscript}"
+                    </div>
+                  )}
+                </div>
+
+                {sttError && (
+                  <div className="p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    {sttError}
+                  </div>
+                )}
+
+                {/* Action Row */}
+                <div className="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleFillSample}
+                      className="text-cyan-400 hover:text-cyan-300 underline font-medium flex items-center gap-1 transition-colors"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Use sample
+                    </button>
+                    <span className="text-slate-400">
+                      {answerText.trim() ? answerText.trim().split(/\s+/).length : 0} words
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isListening && (
+                      <Button variant="secondary" size="sm" onClick={stopListening} className="text-xs">
+                        Done speaking
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleSubmitAnswer}
+                      disabled={submitting || (answerText.trim().length + (interimTranscript?.length || 0)) < 5}
+                      className="flex items-center gap-1.5"
+                    >
+                      {submitting ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          Evaluating...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          Submit answer
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Text Mode */
+              <div className="space-y-3">
+                <textarea
+                  value={answerText}
+                  onChange={(e) => setAnswerText(e.target.value)}
+                  placeholder="Type your technical response here..."
+                  rows={4}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50 leading-relaxed resize-none font-sans"
+                />
+
+                <div className="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleFillSample}
+                      className="text-cyan-400 hover:text-cyan-300 underline font-medium flex items-center gap-1 transition-colors"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Use sample
+                    </button>
+                    <span className="text-slate-400">
+                      {answerText.trim() ? answerText.trim().split(/\s+/).length : 0} words
+                    </span>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSubmitAnswer}
+                    disabled={submitting || answerText.trim().length < 5}
+                    className="flex items-center gap-1.5"
+                  >
+                    {submitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Evaluating...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        Submit answer
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="mt-2 p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                {errorMessage}
+              </div>
+            )}
+          </Card>
         </div>
       )}
 
