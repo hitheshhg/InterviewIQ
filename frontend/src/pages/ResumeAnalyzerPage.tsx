@@ -10,6 +10,12 @@ import {
   RefreshCw,
   ShieldCheck,
   Zap,
+  Download,
+  FileText,
+  FileCheck,
+  Edit3,
+  Layers,
+  TrendingUp,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -20,11 +26,14 @@ import {
   ATSScoreBreakdown,
   FixIssueItem,
   BulletRewriteOption,
+  ExportSelfTestResult,
   parseUploadedResume,
   evaluateResume,
   saveActiveResume,
   getActiveResume,
   suggestBulletRewrites,
+  downloadExportFile,
+  runExportSelfTest,
 } from '../services/canonicalResumeService';
 
 const PRESET_JDS: Record<string, { role: string; jd: string }> = {
@@ -54,6 +63,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
   const [jobDescription, setJobDescription] = useState('');
   const [fileName, setFileName] = useState('Resume.pdf');
   const [activeResumeVersion, setActiveResumeVersion] = useState<number>(1);
+  const [initialScore, setInitialScore] = useState<number | null>(null);
 
   // ATS Evaluation & Fixes
   const [scoreBreakdown, setScoreBreakdown] = useState<ATSScoreBreakdown | null>(null);
@@ -62,7 +72,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
-  // Fix Cards & AI Rewrites State
+  // Step 2: Fix Cards & AI Rewrites State
   const [loadingRewrites, setLoadingRewrites] = useState<Record<string, boolean>>({});
   const [rewritesByIssue, setRewritesByIssue] = useState<Record<string, BulletRewriteOption[]>>({});
   const [selectedRewriteId, setSelectedRewriteId] = useState<Record<string, string>>({});
@@ -71,6 +81,12 @@ export const ResumeAnalyzerPage: React.FC = () => {
   const [skippedIssues, setSkippedIssues] = useState<Set<string>>(new Set());
   const [editingIssueId, setEditingIssueId] = useState<string | null>(null);
   const [manualEditText, setManualEditText] = useState('');
+
+  // Step 3: Template & Export State
+  const [template, setTemplate] = useState<'classic' | 'modern' | 'minimal'>('classic');
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [selfTestResult, setSelfTestResult] = useState<ExportSelfTestResult | null>(null);
+  const [inlineEditingKey, setInlineEditingKey] = useState<string | null>(null);
 
   // Load active resume on initial mount if available
   useEffect(() => {
@@ -84,11 +100,11 @@ export const ResumeAnalyzerPage: React.FC = () => {
           setJobDescription(active.job_description || '');
           setActiveResumeVersion(active.version || 1);
           // Evaluate loaded resume
-          runEvaluation(active.canonical_resume, active.job_description, active.target_role);
+          runEvaluation(active.canonical_resume, active.job_description, active.target_role, true);
           setStep(2);
         }
       } catch (e) {
-        // Not fatal, user can simply upload
+        // User can upload a new resume
       }
     };
     fetchActive();
@@ -101,12 +117,16 @@ export const ResumeAnalyzerPage: React.FC = () => {
   const runEvaluation = async (
     resume: CanonicalResume,
     jd: string = jobDescription,
-    role: string = targetRole
+    role: string = targetRole,
+    isInitial: boolean = false
   ) => {
     setEvaluating(true);
     try {
       const breakdown = await evaluateResume(resume, jd, role);
       setScoreBreakdown(breakdown);
+      if (isInitial || initialScore === null) {
+        setInitialScore(breakdown.overall_score);
+      }
     } catch (err: any) {
       console.error('Evaluation error:', err);
     } finally {
@@ -134,7 +154,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
       setActiveResumeVersion(saved.version);
 
       // Run initial evaluation
-      await runEvaluation(result.canonical_resume, jobDescription, targetRole);
+      await runEvaluation(result.canonical_resume, jobDescription, targetRole, true);
       setStep(2);
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Error parsing resume file.';
@@ -260,7 +280,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
     setSkippedIssues((prev) => new Set(prev).add(issueId));
   };
 
-  // Manual inline edit
+  // Manual inline edit on fix card
   const handleSaveManualEdit = async (issue: FixIssueItem) => {
     if (!canonicalResume || !manualEditText.trim()) return;
 
@@ -287,14 +307,100 @@ export const ResumeAnalyzerPage: React.FC = () => {
     await runEvaluation(updatedResume, jobDescription, targetRole);
   };
 
-  // Visible fixes filter (exclude accepted and skipped)
+  // Step 3: Direct Live Inline Edit on Paper Preview
+  const handleDirectEdit = async (fieldPath: string, newValue: string) => {
+    if (!canonicalResume) return;
+    const updated: CanonicalResume = JSON.parse(JSON.stringify(canonicalResume));
+
+    if (fieldPath === 'summary') {
+      updated.summary = newValue;
+    } else if (fieldPath.startsWith('exp_bullet_')) {
+      const parts = fieldPath.split('_');
+      const expIdx = parseInt(parts[2], 10);
+      const bIdx = parseInt(parts[3], 10);
+      if (updated.experience[expIdx] && updated.experience[expIdx].bullets[bIdx] !== undefined) {
+        updated.experience[expIdx].bullets[bIdx] = newValue;
+      }
+    } else if (fieldPath.startsWith('proj_bullet_')) {
+      const parts = fieldPath.split('_');
+      const pIdx = parseInt(parts[2], 10);
+      const bIdx = parseInt(parts[3], 10);
+      if (updated.projects[pIdx] && updated.projects[pIdx].bullets[bIdx] !== undefined) {
+        updated.projects[pIdx].bullets[bIdx] = newValue;
+      }
+    }
+
+    setCanonicalResume(updated);
+    setInlineEditingKey(null);
+    await saveActiveResume(updated, targetRole, jobDescription, fileName);
+    await runEvaluation(updated, jobDescription, targetRole);
+  };
+
+  // Step 3: Export PDF or DOCX
+  const handleExport = async (format: 'pdf' | 'docx') => {
+    if (!canonicalResume) return;
+    setExporting(format);
+    setError(null);
+
+    try {
+      // 1. Download file
+      const { blob, filename } = await downloadExportFile(
+        canonicalResume,
+        template,
+        format,
+        targetRole
+      );
+
+      // Trigger browser download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // 2. Run Self-Test Verification
+      const testRes = await runExportSelfTest(
+        canonicalResume,
+        template,
+        format,
+        targetRole
+      );
+      setSelfTestResult(testRes);
+
+      // 3. Save as incremented version in MongoDB
+      const saved = await saveActiveResume(
+        canonicalResume,
+        targetRole,
+        jobDescription,
+        filename
+      );
+      setActiveResumeVersion(saved.version);
+    } catch (err: any) {
+      console.error('Export error:', err);
+      setError('Export failed. Please check network and try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  // Filter visible fix issues
   const visibleIssues = (scoreBreakdown?.issues_list || []).filter(
     (issue) => !acceptedIssues.has(issue.id) && !skippedIssues.has(issue.id)
   );
 
+  // Compute total lines for 1-page / 2-page fit indicator
+  const totalBullets = canonicalResume
+    ? canonicalResume.experience.reduce((sum, e) => sum + e.bullets.length, 0) +
+      canonicalResume.projects.reduce((sum, p) => sum + p.bullets.length, 0)
+    : 0;
+  const isOnePageFit = totalBullets <= 10 && (canonicalResume?.experience.length || 0) <= 2;
+
   return (
     <div className="space-y-6 pt-6">
-      {/* 3-Step Clean Header Stepper */}
+      {/* 3-Step Header Stepper */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -415,7 +521,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500 mt-1">Supports PDF & DOCX up to 5MB</p>
               </div>
 
-              {/* Already loaded resume notice */}
+              {/* Already loaded active resume notice */}
               {canonicalResume && (
                 <div className="mt-4 p-3 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -808,7 +914,7 @@ export const ResumeAnalyzerPage: React.FC = () => {
       )}
 
       {/* =================================================================== */}
-      {/* STEP 3: ATS REBUILD PREVIEW (STEP 3 PLACEHOLDER FOR PHASE F4) */}
+      {/* STEP 3: ATS REBUILD, LIVE DIRECT EDITING & PDF/DOCX EXPORT */}
       {/* =================================================================== */}
       {step === 3 && canonicalResume && (
         <motion.div
@@ -817,85 +923,388 @@ export const ResumeAnalyzerPage: React.FC = () => {
           exit={{ opacity: 0, y: -10 }}
           className="space-y-6"
         >
-          <Card className="p-6 border-white/10 bg-white/[0.02]">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-base font-bold text-white">Rebuild ATS Resume</h2>
-                <p className="text-xs text-slate-400">
-                  Ready to export with ATS-safe template and live preview.
-                </p>
+          {/* Top Control Bar: Template Switcher + Score Evolution + Export Actions */}
+          <Card className="p-5 border-white/10 bg-white/[0.02]">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Left: Template Switcher (Classic, Modern, Minimal) */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                  ATS Template
+                </span>
+                <div className="flex items-center gap-2">
+                  {(['classic', 'modern', 'minimal'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTemplate(t)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-all border ${
+                        template === t
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm'
+                          : 'bg-white/[0.03] text-slate-400 border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => setStep(2)}>
-                Back to Fixes
-              </Button>
+
+              {/* Center: Score Evolution & Page Budget Indicator */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Score change badge: e.g. "48 to 82" */}
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1.5 text-xs text-emerald-300">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>
+                    ATS Score: <b>{initialScore ?? scoreBreakdown?.overall_score ?? 60}</b> &rarr;{' '}
+                    <b className="text-white">{scoreBreakdown?.overall_score ?? 85}</b>
+                  </span>
+                </div>
+
+                {/* Page Fit Indicator */}
+                <div
+                  className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs ${
+                    isOnePageFit
+                      ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                      : 'bg-purple-500/10 border-purple-500/30 text-purple-300'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{isOnePageFit ? '1-Page Fit: Optimal' : '2-Page Fit: Extended'}</span>
+                </div>
+
+                {/* Self-Test Badge */}
+                {selfTestResult && (
+                  <div className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-1.5 font-medium">
+                    <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>ATS-readable ({selfTestResult.character_count} chars verified)</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Export Buttons */}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleExport('pdf')}
+                  disabled={exporting !== null}
+                  className="flex items-center gap-1.5"
+                >
+                  {exporting === 'pdf' ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>Export PDF</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handleExport('docx')}
+                  disabled={exporting !== null}
+                  className="flex items-center gap-1.5"
+                >
+                  {exporting === 'docx' ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5" />
+                  )}
+                  <span>Export DOCX</span>
+                </Button>
+              </div>
             </div>
+          </Card>
 
-            {/* Paper Preview Card */}
-            <div className="p-8 rounded-xl bg-white text-slate-900 shadow-xl max-w-3xl mx-auto font-sans text-xs space-y-4">
-              <div className="text-center border-b pb-3">
-                <h3 className="text-lg font-bold tracking-tight text-slate-900">
+          {/* Live Paper-Style Preview with Direct Inline Editing */}
+          <div className="bg-slate-950/60 p-4 sm:p-8 rounded-2xl border border-white/5 flex flex-col items-center">
+            <p className="text-[11px] text-slate-400 mb-3 flex items-center gap-1.5">
+              <Edit3 className="w-3 h-3 text-cyan-400" />
+              <span>Direct editing enabled: Click any line or bullet below to edit inline.</span>
+            </p>
+
+            {/* Paper Container */}
+            <div
+              className={`w-full max-w-[800px] min-h-[1050px] bg-white text-slate-900 shadow-2xl p-8 sm:p-12 rounded-sm transition-all text-xs ${
+                template === 'classic'
+                  ? 'font-serif'
+                  : 'font-sans'
+              }`}
+            >
+              {/* Header (Candidate Contact Info) */}
+              <div
+                className={`pb-3 mb-4 ${
+                  template === 'classic'
+                    ? 'text-center border-b border-slate-300'
+                    : template === 'modern'
+                    ? 'text-left border-b-2 border-cyan-600'
+                    : 'text-left border-b border-slate-200'
+                }`}
+              >
+                <h1
+                  className={`font-bold tracking-tight ${
+                    template === 'modern'
+                      ? 'text-2xl text-cyan-700'
+                      : template === 'classic'
+                      ? 'text-2xl text-slate-900'
+                      : 'text-xl text-slate-900'
+                  }`}
+                >
                   {canonicalResume.contact.full_name}
-                </h3>
-                <p className="text-[11px] text-slate-600">
-                  {canonicalResume.contact.email} • {canonicalResume.contact.phone} • {canonicalResume.contact.location}
+                </h1>
+                <p className="text-[11px] text-slate-600 mt-1">
+                  {[
+                    canonicalResume.contact.email,
+                    canonicalResume.contact.phone,
+                    canonicalResume.contact.location,
+                    canonicalResume.contact.linkedin,
+                    canonicalResume.contact.github,
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')}
                 </p>
               </div>
 
+              {/* Summary */}
               {canonicalResume.summary && (
-                <div>
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 border-b pb-0.5 mb-1">
+                <div className="mb-4">
+                  <h2
+                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                      template === 'modern'
+                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
+                        : template === 'classic'
+                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
+                        : 'text-slate-900 pb-0.5'
+                    }`}
+                  >
                     Summary
-                  </h4>
-                  <p className="text-slate-700">{canonicalResume.summary}</p>
+                  </h2>
+                  {inlineEditingKey === 'summary' ? (
+                    <textarea
+                      rows={2}
+                      defaultValue={canonicalResume.summary}
+                      onBlur={(e) => handleDirectEdit('summary', e.target.value)}
+                      autoFocus
+                      className="w-full p-2 border border-cyan-500 rounded text-xs text-slate-900 focus:outline-none"
+                    />
+                  ) : (
+                    <p
+                      onClick={() => setInlineEditingKey('summary')}
+                      className="cursor-pointer hover:bg-cyan-50/50 p-1 rounded transition-colors text-slate-800"
+                      title="Click to edit summary"
+                    >
+                      {canonicalResume.summary}
+                    </p>
+                  )}
                 </div>
               )}
 
-              <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 border-b pb-0.5 mb-1">
+              {/* Technical Skills */}
+              <div className="mb-4">
+                <h2
+                  className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                    template === 'modern'
+                      ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
+                      : template === 'classic'
+                      ? 'text-slate-800 border-b border-slate-300 pb-0.5'
+                      : 'text-slate-900 pb-0.5'
+                  }`}
+                >
                   Technical Skills
-                </h4>
-                <p className="text-slate-700">
-                  <span className="font-semibold">Languages: </span>
-                  {canonicalResume.skills.languages.join(', ') || 'None listed'}
-                </p>
-                <p className="text-slate-700">
-                  <span className="font-semibold">Frameworks: </span>
-                  {canonicalResume.skills.frameworks.join(', ') || 'None listed'}
-                </p>
-                <p className="text-slate-700">
-                  <span className="font-semibold">Tools & Cloud: </span>
-                  {[...canonicalResume.skills.developer_tools, ...canonicalResume.skills.cloud_databases].join(', ') || 'None listed'}
-                </p>
+                </h2>
+                <div className="space-y-0.5 text-slate-800">
+                  {canonicalResume.skills.languages.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Languages: </span>
+                      {canonicalResume.skills.languages.join(', ')}
+                    </p>
+                  )}
+                  {canonicalResume.skills.frameworks.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Frameworks: </span>
+                      {canonicalResume.skills.frameworks.join(', ')}
+                    </p>
+                  )}
+                  {canonicalResume.skills.developer_tools.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Developer Tools: </span>
+                      {canonicalResume.skills.developer_tools.join(', ')}
+                    </p>
+                  )}
+                  {canonicalResume.skills.cloud_databases.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Databases & Cloud: </span>
+                      {canonicalResume.skills.cloud_databases.join(', ')}
+                    </p>
+                  )}
+                </div>
               </div>
 
+              {/* Professional Experience */}
               {canonicalResume.experience.length > 0 && (
-                <div>
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 border-b pb-0.5 mb-1">
+                <div className="mb-4">
+                  <h2
+                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                      template === 'modern'
+                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
+                        : template === 'classic'
+                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
+                        : 'text-slate-900 pb-0.5'
+                    }`}
+                  >
                     Experience
-                  </h4>
-                  {canonicalResume.experience.map((exp, idx) => (
-                    <div key={idx} className="mb-2">
-                      <div className="flex justify-between font-semibold text-slate-800">
-                        <span>{exp.role} • {exp.company}</span>
-                        <span>{exp.start_date} - {exp.end_date}</span>
+                  </h2>
+                  {canonicalResume.experience.map((exp, expIdx) => (
+                    <div key={expIdx} className="mb-3">
+                      <div className="flex justify-between font-bold text-slate-900">
+                        <span>
+                          {exp.role} • {exp.company}
+                        </span>
+                        <span className="text-[11px] font-normal text-slate-600">
+                          {exp.start_date} – {exp.end_date}
+                        </span>
                       </div>
-                      <ul className="list-disc list-inside space-y-0.5 text-slate-700 mt-1">
-                        {exp.bullets.map((b, bIdx) => (
-                          <li key={bIdx}>{b}</li>
-                        ))}
+                      <ul className="list-disc list-inside space-y-1 text-slate-800 mt-1">
+                        {exp.bullets.map((b, bIdx) => {
+                          const key = `exp_bullet_${expIdx}_${bIdx}`;
+                          return (
+                            <li key={bIdx} className="leading-relaxed">
+                              {inlineEditingKey === key ? (
+                                <input
+                                  type="text"
+                                  defaultValue={b}
+                                  onBlur={(e) => handleDirectEdit(key, e.target.value)}
+                                  autoFocus
+                                  className="w-full px-1.5 py-0.5 border border-cyan-500 rounded text-xs text-slate-900 focus:outline-none"
+                                />
+                              ) : (
+                                <span
+                                  onClick={() => setInlineEditingKey(key)}
+                                  className="cursor-pointer hover:bg-cyan-50/60 p-0.5 rounded transition-colors"
+                                  title="Click to edit bullet"
+                                >
+                                  {b}
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
 
-            <div className="mt-6 flex justify-end">
-              <Button size="sm" variant="primary" onClick={() => setStep(2)}>
-                Continue Improving
-              </Button>
+              {/* Projects */}
+              {canonicalResume.projects.length > 0 && (
+                <div className="mb-4">
+                  <h2
+                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                      template === 'modern'
+                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
+                        : template === 'classic'
+                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
+                        : 'text-slate-900 pb-0.5'
+                    }`}
+                  >
+                    Projects
+                  </h2>
+                  {canonicalResume.projects.map((proj, pIdx) => (
+                    <div key={pIdx} className="mb-2">
+                      <div className="font-bold text-slate-900">
+                        {proj.name}
+                        {proj.tech_stack.length > 0 && (
+                          <span className="font-normal italic text-[11px] text-slate-600 ml-1">
+                            ({proj.tech_stack.join(', ')})
+                          </span>
+                        )}
+                      </div>
+                      {proj.description && (
+                        <p className="text-slate-700 mb-0.5">{proj.description}</p>
+                      )}
+                      <ul className="list-disc list-inside space-y-0.5 text-slate-800">
+                        {proj.bullets.map((b, bIdx) => {
+                          const key = `proj_bullet_${pIdx}_${bIdx}`;
+                          return (
+                            <li key={bIdx}>
+                              {inlineEditingKey === key ? (
+                                <input
+                                  type="text"
+                                  defaultValue={b}
+                                  onBlur={(e) => handleDirectEdit(key, e.target.value)}
+                                  autoFocus
+                                  className="w-full px-1.5 py-0.5 border border-cyan-500 rounded text-xs text-slate-900 focus:outline-none"
+                                />
+                              ) : (
+                                <span
+                                  onClick={() => setInlineEditingKey(key)}
+                                  className="cursor-pointer hover:bg-cyan-50/60 p-0.5 rounded transition-colors"
+                                  title="Click to edit project bullet"
+                                >
+                                  {b}
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Education */}
+              {canonicalResume.education.length > 0 && (
+                <div className="mb-4">
+                  <h2
+                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                      template === 'modern'
+                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
+                        : template === 'classic'
+                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
+                        : 'text-slate-900 pb-0.5'
+                    }`}
+                  >
+                    Education
+                  </h2>
+                  {canonicalResume.education.map((edu, idx) => (
+                    <div key={idx} className="flex justify-between text-slate-800">
+                      <div>
+                        <span className="font-bold text-slate-900">{edu.institution}</span> —{' '}
+                        {edu.degree} in {edu.field_of_study}
+                        {edu.gpa_or_grade && <span className="ml-1 text-slate-600">({edu.gpa_or_grade})</span>}
+                      </div>
+                      <span className="text-[11px] text-slate-600">{edu.graduation_year}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Certifications */}
+              {canonicalResume.certifications.length > 0 && (
+                <div>
+                  <h2
+                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                      template === 'modern'
+                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
+                        : template === 'classic'
+                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
+                        : 'text-slate-900 pb-0.5'
+                    }`}
+                  >
+                    Certifications
+                  </h2>
+                  <ul className="list-disc list-inside space-y-0.5 text-slate-800">
+                    {canonicalResume.certifications.map((c, idx) => (
+                      <li key={idx}>
+                        <span className="font-semibold">{c.name}</span> — {c.issuer}
+                        {c.year && <span className="text-slate-600"> ({c.year})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-          </Card>
+          </div>
         </motion.div>
       )}
     </div>

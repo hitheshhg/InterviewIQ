@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Request
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Request, Response
 from bson import ObjectId
 from app.middleware.rate_limit import limiter
 from app.services.resume_extractor import extract_text_from_file
@@ -15,10 +15,12 @@ from app.models.canonical_resume import (
 )
 from app.models.canonical_scoring import ATSScoreBreakdown, EvaluateResumeRequest
 from app.models.canonical_rewrite import SuggestBulletRewritesRequest, SuggestBulletRewritesResponse
+from app.models.canonical_export import ExportResumeRequest, ExportSelfTestResult
 from app.services.canonical_parser import canonical_parser
 from app.services.canonical_resume_manager import canonical_resume_manager
 from app.services.canonical_scorer import canonical_scorer
 from app.services.canonical_rewriter import canonical_rewriter
+from app.services.canonical_exporter import canonical_exporter
 from app.dependencies import get_current_user
 from app.database import get_db
 
@@ -241,6 +243,73 @@ async def suggest_bullet_rewrites(
     Inserts [Fill in: ___] slots for missing metrics and validates evidence.
     """
     return await canonical_rewriter.suggest_rewrites(payload)
+
+
+@router.post("/export-file")
+async def export_resume_file(
+    payload: ExportResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Step 3: Export candidate resume to ATS-safe PDF or DOCX.
+    Uses single column, selectable text, standard headings, and zero content tables.
+    Filename follows specification: Name_Resume.ext
+    """
+    ext = "pdf" if payload.format.lower() == "pdf" else "docx"
+    filename = canonical_exporter.sanitize_filename(payload.canonical_resume.contact.full_name, ext)
+
+    if ext == "pdf":
+        file_bytes = canonical_exporter.generate_pdf(payload.canonical_resume, template=payload.template)
+        media_type = "application/pdf"
+    else:
+        file_bytes = canonical_exporter.generate_docx(payload.canonical_resume, template=payload.template)
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    # Also record version increment with scores if provided
+    try:
+        user_id = current_user.get("firebase_uid") or current_user.get("uid") or "candidate"
+        await canonical_resume_manager.save_active_resume(
+            user_id=user_id,
+            payload=SaveActiveResumeRequest(
+                canonical_resume=payload.canonical_resume,
+                target_role=payload.target_role or "Full Stack Developer",
+                file_name=filename,
+            ),
+        )
+    except Exception as e:
+        pass
+
+    return Response(
+        content=file_bytes,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.post("/export-self-test", response_model=ExportSelfTestResult)
+async def export_self_test(
+    payload: ExportResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Step 3: Self-test verification.
+    Generates the export file, re-parses it with our ATS extractor, and verifies
+    that sections, contact info, and skills survived cleanly.
+    """
+    ext = "pdf" if payload.format.lower() == "pdf" else "docx"
+    if ext == "pdf":
+        file_bytes = canonical_exporter.generate_pdf(payload.canonical_resume, template=payload.template)
+    else:
+        file_bytes = canonical_exporter.generate_docx(payload.canonical_resume, template=payload.template)
+
+    return canonical_exporter.run_export_self_test(
+        file_bytes=file_bytes,
+        file_type=ext,
+        expected_resume=payload.canonical_resume,
+    )
 
 
 @router.get("/versions")

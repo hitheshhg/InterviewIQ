@@ -128,6 +128,8 @@ class SaveActiveResumeRequest(BaseModel):
     job_description: Optional[str] = ""
     target_role: Optional[str] = "Full Stack Developer"
     file_name: Optional[str] = "Resume.pdf"
+    previous_score: Optional[int] = None
+    current_score: Optional[int] = None
 
 
 class ActiveResumeResponse(BaseModel):

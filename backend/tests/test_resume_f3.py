@@ -199,3 +199,4 @@ async def test_suggest_rewrites_api_endpoint():
         assert len(data["suggestions"]) >= 1
         assert "rew_1" in data["suggestions"][0]["rewrite_id"]
         assert data["suggestions"][0]["needs_fill_in"] is True
+

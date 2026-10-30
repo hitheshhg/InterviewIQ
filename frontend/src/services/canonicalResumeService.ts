@@ -216,4 +216,65 @@ export const suggestBulletRewrites = async (
   return response.data;
 };
 
+export interface ExportSelfTestResult {
+  is_ats_readable: boolean;
+  character_count: number;
+  name_matched: boolean;
+  email_matched: boolean;
+  survived_sections: string[];
+  skills_survived_count: number;
+  file_type: string;
+  filename: string;
+  verdict: string;
+  badge: string;
+}
+
+export const runExportSelfTest = async (
+  canonicalResume: CanonicalResume,
+  template: 'classic' | 'modern' | 'minimal' = 'classic',
+  format: 'pdf' | 'docx' = 'pdf',
+  targetRole?: string
+): Promise<ExportSelfTestResult> => {
+  const response = await api.post<ExportSelfTestResult>(
+    '/api/v1/resume/export-self-test',
+    {
+      canonical_resume: canonicalResume,
+      template,
+      format,
+      target_role: targetRole,
+    }
+  );
+  return response.data;
+};
+
+export const downloadExportFile = async (
+  canonicalResume: CanonicalResume,
+  template: 'classic' | 'modern' | 'minimal' = 'classic',
+  format: 'pdf' | 'docx' = 'pdf',
+  targetRole?: string
+): Promise<{ blob: Blob; filename: string }> => {
+  const response = await api.post(
+    '/api/v1/resume/export-file',
+    {
+      canonical_resume: canonicalResume,
+      template,
+      format,
+      target_role: targetRole,
+    },
+    {
+      responseType: 'blob',
+    }
+  );
+
+  const disposition = response.headers['content-disposition'] || '';
+  let filename = `${canonicalResume.contact.full_name.replace(/[^a-zA-Z0-9]+/g, '_')}_Resume.${format}`;
+  const match = disposition.match(/filename="?([^";]+)"?/);
+  if (match && match[1]) {
+    filename = match[1];
+  }
+
+  return { blob: response.data, filename };
+};
+
+
 

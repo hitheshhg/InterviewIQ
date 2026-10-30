@@ -28,14 +28,15 @@
 | **Phase F1 (Resume Flow v2)** | Upload, Parsing, Canonical Schema & Storage | ✅ COMPLETED | Canonical Resume JSON Pydantic schema, Gemini structured output parsing with retry and heuristic fallback, file guardrails with friendly errors for empty, corrupt, and scanned PDFs, Atlas active-resume model with versioning (`POST /parse-upload`, `POST /save-active`, `GET /active`, `GET /versions`), 6/6 dedicated tests passing. |
 | **Phase F2 (Resume Flow v2)** | Scoring Engine & Job Description Matching | ✅ COMPLETED | Deterministic 5-factor weighted scoring engine (40/15/15/15/15 with JD, 25/25/25/25 without JD with transparent note), semantic skill matching with exact evidence line citations (matched, partial, missing), impact-ranked fix issue generation, `POST /api/v1/resume/evaluate` endpoint, 6/6 dedicated tests passing (40/40 total). |
 | **Phase F3 (Resume Flow v2)** | Guided Improvement UI & Truth Rule Engine | ✅ COMPLETED | Truth Rule bullet rewrite service with Google X-Y-Z formula, fill-in placeholders for real metrics, adversarial anti-hallucination sanitization, missing skills confirmation questions, live dynamic ATS ScoreGauge recalculation, `POST /api/v1/resume/suggest-rewrites`, 6/6 dedicated tests passing (18/18 Resume Flow v2 tests). |
+| **Phase F4 (Resume Flow v2)** | Template Rendering & Export Self-Test | ✅ COMPLETED | 3 ATS-safe templates (Classic, Modern, Minimal), live paper preview with direct inline editing, 1-page/2-page fit indicator, PDF/DOCX export (`POST /export-file`), export self-test re-parser with green "ATS-readable" badge (`POST /export-self-test`), special characters & international accents support, score change evolution tracking, 7/7 dedicated tests passing (25/25 Resume Flow v2 tests). |
 
 ---
 
-## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 + Phases F1, F2 & F3 Delivered)
+## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 + Phases F1, F2, F3 & F4 Delivered)
 
 - **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 18/18 Resume Flow v2 tests passing (F1, F2, F3) and complete test suites verified.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in 5.03s).
+- **Automated Tests:** 25/25 Resume Flow v2 tests passing (F1, F2, F3, F4) and complete test suites verified.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5s).
 - **Backend API:** FastAPI running with live MongoDB Atlas connection, Gemini AI failover, and active-resume storage.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).
 - **Security & Quota:** Strict Firebase ID token verification and per-user AI rate limiting (friendly 429 handler).

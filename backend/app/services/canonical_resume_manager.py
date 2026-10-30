@@ -66,6 +66,8 @@ class CanonicalResumeManager:
             "file_type": "pdf",
             "target_role": payload.target_role or "Full Stack Developer",
             "job_description": payload.job_description or "",
+            "previous_score": payload.previous_score,
+            "current_score": payload.current_score,
             "canonical_data": payload.canonical_resume.model_dump(),
             "created_at": now,
             "updated_at": now,
