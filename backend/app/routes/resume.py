@@ -14,9 +14,11 @@ from app.models.canonical_resume import (
     ActiveResumeResponse,
 )
 from app.models.canonical_scoring import ATSScoreBreakdown, EvaluateResumeRequest
+from app.models.canonical_rewrite import SuggestBulletRewritesRequest, SuggestBulletRewritesResponse
 from app.services.canonical_parser import canonical_parser
 from app.services.canonical_resume_manager import canonical_resume_manager
 from app.services.canonical_scorer import canonical_scorer
+from app.services.canonical_rewriter import canonical_rewriter
 from app.dependencies import get_current_user
 from app.database import get_db
 
@@ -224,6 +226,21 @@ async def evaluate_canonical_resume(
         target_role=payload.target_role,
     )
     return score_breakdown
+
+
+@router.post("/suggest-rewrites", response_model=SuggestBulletRewritesResponse)
+@limiter.limit("15/minute")
+async def suggest_bullet_rewrites(
+    request: Request,
+    payload: SuggestBulletRewritesRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Step 2: Generate up to 3 truthful, high-impact bullet rewrites adhering to the Truth Rule.
+    Guarantees no fabricated metrics, numbers, employers, or skills.
+    Inserts [Fill in: ___] slots for missing metrics and validates evidence.
+    """
+    return await canonical_rewriter.suggest_rewrites(payload)
 
 
 @router.get("/versions")

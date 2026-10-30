@@ -40,6 +40,7 @@ class CanonicalResumeManager:
 
         # Determine next version number
         next_version = 1
+        version_found = False
         if db is not None:
             try:
                 latest = await db.resumes.find_one(
@@ -47,12 +48,15 @@ class CanonicalResumeManager:
                 )
                 if latest and "version" in latest:
                     next_version = int(latest["version"]) + 1
+                    version_found = True
             except Exception as e:
                 logger.warning(f"[CanonicalManager] Error reading version from DB: {e}")
-        else:
+                db = None
+
+        if not version_found:
             user_list = self._in_memory_resumes.get(user_id, [])
             if user_list:
-                next_version = max((r.get("version", 1) for r in user_list), default=0) + 1
+                next_version = max((r.get("version", 0) for r in user_list), default=0) + 1
 
         resume_doc = {
             "user_id": user_id,

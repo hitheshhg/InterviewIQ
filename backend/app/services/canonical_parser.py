@@ -122,11 +122,11 @@ Please parse the following raw resume text into the CanonicalResume schema:
             ),
             summary="Motivated Software Engineer with hands-on experience developing web applications, microservices, and databases.",
             skills=CategorizedSkills(
-                languages=found_langs or ["Python", "TypeScript", "SQL"],
-                frameworks=found_frameworks or ["FastAPI", "React", "Tailwind CSS"],
-                developer_tools=found_tools or ["Git", "Docker", "Pytest"],
-                cloud_databases=found_cloud_db or ["MongoDB", "PostgreSQL"],
-                other=["REST APIs", "Agile", "System Design"],
+                languages=found_langs or (["Python"] if "python" in text_lower else []),
+                frameworks=found_frameworks or [],
+                developer_tools=found_tools or [],
+                cloud_databases=found_cloud_db or [],
+                other=[],
             ),
             experience=[
                 ExperienceItem(

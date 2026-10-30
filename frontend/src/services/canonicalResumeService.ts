@@ -180,3 +180,40 @@ export const getActiveResume = async (): Promise<ActiveResumeResponse | null> =>
   }
 };
 
+export interface BulletRewriteOption {
+  rewrite_id: string;
+  text: string;
+  needs_fill_in: boolean;
+  fill_in_prompts: string[];
+  rationale: string;
+}
+
+export interface SuggestBulletRewritesResponse {
+  original_text: string;
+  category: string;
+  suggestions: BulletRewriteOption[];
+  truth_check_passed: boolean;
+  evidence_notes: string[];
+}
+
+export const suggestBulletRewrites = async (
+  bulletText: string,
+  category: string = 'metric',
+  contextRole?: string,
+  targetRole?: string,
+  jobDescription?: string
+): Promise<SuggestBulletRewritesResponse> => {
+  const response = await api.post<SuggestBulletRewritesResponse>(
+    '/api/v1/resume/suggest-rewrites',
+    {
+      bullet_text: bulletText,
+      category,
+      context_role: contextRole,
+      target_role: targetRole,
+      job_description: jobDescription,
+    }
+  );
+  return response.data;
+};
+
+
