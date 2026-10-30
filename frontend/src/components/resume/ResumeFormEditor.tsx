@@ -86,6 +86,30 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const expandAll = () => {
+    setOpenSections({
+      contact: true,
+      summary: true,
+      skills: true,
+      experience: true,
+      projects: true,
+      education: true,
+      certifications: true,
+    });
+  };
+
+  const collapseAll = () => {
+    setOpenSections({
+      contact: false,
+      summary: false,
+      skills: false,
+      experience: false,
+      projects: false,
+      education: false,
+      certifications: false,
+    });
+  };
+
   const moveSection = (index: number, direction: 'up' | 'down') => {
     const newOrder = [...sectionOrder];
     const targetIdx = direction === 'up' ? index - 1 : index + 1;
@@ -279,25 +303,45 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
   return (
     <div className="space-y-4">
       {/* Editor Control Header */}
-      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-white/10">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-900/80 border border-white/10">
         <div className="flex items-center gap-2">
           {/* Undo / Redo */}
-          <button
-            onClick={onUndo}
-            disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed border border-white/5"
-          >
-            <Undo2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onRedo}
-            disabled={!canRedo}
-            title="Redo (Ctrl+Shift+Z)"
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed border border-white/5"
-          >
-            <Redo2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 border-r border-white/10 pr-2">
+            <button
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+              className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed border border-white/5"
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Shift+Z)"
+              className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed border border-white/5"
+            >
+              <Redo2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Quick Accordion Expand/Collapse */}
+          <div className="flex items-center gap-1.5 text-[11px]">
+            <button
+              type="button"
+              onClick={expandAll}
+              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/5"
+            >
+              Expand All
+            </button>
+            <button
+              type="button"
+              onClick={collapseAll}
+              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/5"
+            >
+              Collapse All
+            </button>
+          </div>
         </div>
 
         {/* Autosave Status Indicator */}
@@ -305,7 +349,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
           {autosaveState === 'saving' ? (
             <>
               <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span>Saving changes...</span>
+              <span>Saving...</span>
             </>
           ) : autosaveState === 'saved' ? (
             <>
@@ -321,8 +365,30 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
         </div>
       </div>
 
+      {/* Quick Section Navigation Chips */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar">
+        {['contact', ...sectionOrder].map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => {
+              setOpenSections((prev) => ({ ...prev, [key]: true }));
+              const el = document.getElementById(`section-${key}`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+            className={`px-2.5 py-1 rounded-lg border text-[11px] capitalize whitespace-nowrap transition-all ${
+              openSections[key]
+                ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 font-semibold'
+                : 'bg-white/[0.03] border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {key}
+          </button>
+        ))}
+      </div>
+
       {/* 1. Contact Information Card */}
-      <Card padding="md" className="border-white/10 bg-slate-900/60">
+      <Card id="section-contact" padding="md" className="border-white/10 bg-slate-900/60">
         <div
           onClick={() => toggleAccordion('contact')}
           className="flex items-center justify-between cursor-pointer select-none"
@@ -388,7 +454,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
         switch (sectionKey) {
           case 'summary':
             return (
-              <Card key="summary" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-summary" key="summary" padding="md" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('summary')}
@@ -463,7 +529,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'skills':
             return (
-              <Card key="skills" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-skills" key="skills" padding="md" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('skills')}
@@ -555,7 +621,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'experience':
             return (
-              <Card key="experience" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-experience" key="experience" padding="md" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('experience')}
@@ -712,7 +778,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'projects':
             return (
-              <Card key="projects" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-projects" key="projects" padding="md" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('projects')}
@@ -853,7 +919,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'education':
             return (
-              <Card key="education" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-education" key="education" padding="md" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('education')}
@@ -942,7 +1008,7 @@ export const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({
 
           case 'certifications':
             return (
-              <Card key="certifications" padding="md" className="border-white/10 bg-slate-900/60">
+              <Card id="section-certifications" key="certifications" padding="md" className="border-white/10 bg-slate-900/60">
                 <div className="flex items-center justify-between pb-2 border-b border-white/5">
                   <div
                     onClick={() => toggleAccordion('certifications')}

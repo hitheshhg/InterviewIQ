@@ -376,3 +376,5 @@ Use this focused 2-minute script when an examiner specifically asks to see the *
 | **Container & Deploy** | Multi-stage Dockerfile ($<180\text{MB}$ runner, non-root `appuser`), `render.yaml`, `vercel.json` |
 | **Test Verification** | 98 automated backend tests + 100% strict TypeScript compilation passing |
 
+
+

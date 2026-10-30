@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   CanonicalResume,
   TemplateId,
@@ -11,7 +11,7 @@ import { ModernTemplate } from './templates/ModernTemplate';
 import { CompactTemplate } from './templates/CompactTemplate';
 import { MinimalTemplate } from './templates/MinimalTemplate';
 import Badge from '../ui/Badge';
-import { Check, ZoomIn, ZoomOut } from 'lucide-react';
+import { Check, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 interface ResumePaperPreviewProps {
   resume: CanonicalResume;
@@ -26,6 +26,7 @@ interface ResumePaperPreviewProps {
 }
 
 const PAGE_HEIGHT_PX = 1056; // Standard 96 DPI A4/Letter printable page height
+const PAPER_WIDTH_PX = 800; // Standard single-column paper width
 
 export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
   resume,
@@ -39,27 +40,46 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
   onFontSizeChange,
 }) => {
   const paperRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState<number>(1);
-  const [zoomScale, setZoomScale] = useState<number>(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640) {
-      return 0.65;
-    }
-    return 0.95;
-  });
+  const [paperHeight, setPaperHeight] = useState<number>(PAGE_HEIGHT_PX);
+  const [zoomScale, setZoomScale] = useState<number>(0.9);
 
-  // Monitor DOM height to detect 1-page vs 2-page fit dynamically
+  // Auto-fit calculation based on container width
+  const handleFitToWidth = useCallback(() => {
+    if (containerRef.current) {
+      const availableWidth = containerRef.current.clientWidth - 48; // padding margin
+      if (availableWidth > 200) {
+        const targetScale = Math.min(1.1, Math.max(0.45, availableWidth / PAPER_WIDTH_PX));
+        setZoomScale(Number(targetScale.toFixed(2)));
+      }
+    }
+  }, []);
+
+  // Monitor DOM height and dimensions dynamically
   useEffect(() => {
-    const updateHeight = () => {
+    const updateDimensions = () => {
       if (paperRef.current) {
         const height = paperRef.current.scrollHeight;
+        setPaperHeight(height);
         const pages = Math.max(1, Math.ceil((height + 20) / PAGE_HEIGHT_PX));
         setPageCount(pages);
       }
     };
-    updateHeight();
-    const timer = setTimeout(updateHeight, 300);
+    updateDimensions();
+    const timer = setTimeout(updateDimensions, 300);
     return () => clearTimeout(timer);
   }, [resume, template, fontSize, sectionOrder, hiddenSections]);
+
+  // Initial fit and window resize listener
+  useEffect(() => {
+    const timer = setTimeout(handleFitToWidth, 200);
+    window.addEventListener('resize', handleFitToWidth);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleFitToWidth);
+    };
+  }, [handleFitToWidth]);
 
   const renderActiveTemplate = () => {
     const props = {
@@ -160,20 +180,32 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
             {pageCount === 1 ? '1 Page (Optimal)' : `${pageCount} Pages`}
           </Badge>
 
-          {/* Zoom Buttons */}
+          {/* Zoom & Fit Buttons */}
           <div className="flex items-center gap-1 text-slate-400">
             <button
-              onClick={() => setZoomScale((prev) => Math.max(0.7, prev - 0.1))}
+              onClick={handleFitToWidth}
+              className="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 hover:bg-white/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/20 transition-colors flex items-center gap-1"
+              title="Auto-fit paper width to available workspace"
+            >
+              <Maximize2 className="w-3 h-3" />
+              <span>Fit</span>
+            </button>
+            <button
+              onClick={() => setZoomScale((prev) => Math.max(0.4, Number((prev - 0.1).toFixed(2))))}
               className="p-1 hover:text-white hover:bg-white/5 rounded"
               title="Zoom out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-[11px] font-mono text-slate-400 w-8 text-center">
-              {Math.round(zoomScale * 100)}%
-            </span>
             <button
-              onClick={() => setZoomScale((prev) => Math.min(1.2, prev + 0.1))}
+              onClick={() => setZoomScale(1.0)}
+              className="text-[11px] font-mono text-slate-300 hover:text-white w-9 text-center px-0.5 py-0.5 rounded hover:bg-white/5"
+              title="Click to reset to 100%"
+            >
+              {Math.round(zoomScale * 100)}%
+            </button>
+            <button
+              onClick={() => setZoomScale((prev) => Math.min(1.3, Number((prev + 0.1).toFixed(2))))}
               className="p-1 hover:text-white hover:bg-white/5 rounded"
               title="Zoom in"
             >
@@ -183,20 +215,31 @@ export const ResumePaperPreview: React.FC<ResumePaperPreviewProps> = ({
         </div>
       </div>
 
-      {/* Live Paper Canvas Scroll Stage */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto max-h-[850px] flex justify-center p-2 sm:p-4 bg-slate-950/60 rounded-lg custom-scrollbar">
+      {/* Live Paper Canvas Scroll Stage with responsive height & zero-phantom-overflow */}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-x-auto overflow-y-auto max-h-[calc(100vh-14rem)] min-h-[500px] flex justify-center p-3 sm:p-5 bg-slate-950/70 rounded-xl border border-white/5 custom-scrollbar"
+      >
         <div
           style={{
-            transform: `scale(${zoomScale})`,
-            transformOrigin: 'top center',
-            transition: 'transform 0.15s ease-out',
+            width: `${PAPER_WIDTH_PX * zoomScale}px`,
+            height: `${paperHeight * zoomScale}px`,
+            position: 'relative',
+            transition: 'width 0.12s ease-out, height 0.12s ease-out',
           }}
-          className="w-full max-w-[800px] shrink-0"
+          className="shrink-0"
         >
           {/* White Paper Sheet */}
           <div
             ref={paperRef}
-            className="bg-white text-slate-900 p-8 sm:p-10 rounded shadow-2xl relative border border-slate-200 min-h-[1056px]"
+            style={{
+              width: `${PAPER_WIDTH_PX}px`,
+              transform: `scale(${zoomScale})`,
+              transformOrigin: 'top left',
+              transition: 'transform 0.12s ease-out',
+              minHeight: `${PAGE_HEIGHT_PX}px`,
+            }}
+            className="bg-white text-slate-900 p-8 sm:p-10 rounded-lg shadow-2xl absolute top-0 left-0 border border-slate-200"
           >
             {renderActiveTemplate()}
 

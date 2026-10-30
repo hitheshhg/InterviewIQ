@@ -30,6 +30,9 @@ import {
   ChevronDown,
   Layers,
   History,
+  Columns,
+  FileEdit,
+  Eye,
 } from 'lucide-react';
 
 
@@ -126,7 +129,9 @@ export const ResumeStudioPage: React.FC = () => {
 
   // Right Column View Mode: 'preview' (Paper) | 'score' (ATS Breakdown)
   const [rightViewMode, setRightViewMode] = useState<'preview' | 'score'>('preview');
-  const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
+  // Workspace Layout Mode: 'split' (50/50 side-by-side) | 'editor' (Full width editor) | 'preview' (Full width preview & ATS)
+  type StudioLayoutMode = 'split' | 'editor' | 'preview';
+  const [layoutMode, setLayoutMode] = useState<StudioLayoutMode>('split');
 
   // Job Description for Live Tailoring Match
   const [jobDescription, setJobDescription] = useState<string>('');
@@ -342,10 +347,125 @@ export const ResumeStudioPage: React.FC = () => {
     }
   };
 
+  const renderJobDescriptionAccordion = () => (
+    <div className="bg-slate-900/70 border border-white/10 rounded-xl p-3.5">
+      <div
+        onClick={() => setJdOpen(!jdOpen)}
+        className="flex items-center justify-between cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-cyan-400" />
+          <span className="text-xs font-bold text-white uppercase tracking-wider">
+            Target Job Description
+          </span>
+          {jobDescription && (
+            <Badge variant="cyan" size="sm">
+              Active Match
+            </Badge>
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 transition-transform ${jdOpen ? 'rotate-180' : ''}`}
+        />
+      </div>
+
+      {jdOpen && (
+        <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
+          <p className="text-[11px] text-slate-400">
+            Paste the JD below to activate the 40% keyword & semantic match scoring.
+          </p>
+          <textarea
+            rows={3}
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            placeholder="Paste job description requirements here..."
+            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 leading-relaxed"
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  const renderRightPanel = () => (
+    <>
+      {/* Tab Switcher: Paper Preview vs ATS Score */}
+      <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-xl border border-white/10">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setRightViewMode('preview')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              rightViewMode === 'preview'
+                ? 'bg-cyan-500 text-black shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Layout className="w-3.5 h-3.5" />
+            <span>Paper Preview</span>
+          </button>
+          <button
+            onClick={() => setRightViewMode('score')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              rightViewMode === 'score'
+                ? 'bg-cyan-500 text-black shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Gauge className="w-3.5 h-3.5" />
+            <span>ATS Score</span>
+            {atsScoreData && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-black/20 text-black font-bold">
+                {atsScoreData.overall_score}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Quick Score Pill on Preview Mode */}
+        {rightViewMode === 'preview' && atsScoreData && (
+          <button
+            onClick={() => setRightViewMode('score')}
+            className="flex items-center gap-1 text-[11px] font-mono text-cyan-400 bg-cyan-950/40 px-2 py-1 rounded-md border border-cyan-500/20 hover:border-cyan-400"
+          >
+            <span>Score:</span>
+            <span className="font-bold">{atsScoreData.overall_score}/100</span>
+          </button>
+        )}
+      </div>
+
+      {/* Conditional View */}
+      {rightViewMode === 'preview' ? (
+        <ResumePaperPreview
+          resume={currentResume}
+          template={template}
+          accentColor={accentColor}
+          fontSize={fontSize}
+          sectionOrder={sectionOrder}
+          hiddenSections={hiddenSections}
+          onTemplateChange={setTemplate}
+          onAccentColorChange={setAccentColor}
+          onFontSizeChange={setFontSize}
+        />
+      ) : (
+        <ATSScorePanel
+          scoreData={atsScoreData}
+          loading={scoringLoading}
+          onOpenTailor={() => {
+            setTailorRole('Target Role');
+            setTailorCompany('Target Company');
+            setTailorJDText(jobDescription);
+            setIsTailoringModalOpen(true);
+          }}
+          onPracticeWeakSpots={handlePracticeWeakSpots}
+          isPracticing={practicingSeeds}
+        />
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-6 pt-4">
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
@@ -360,8 +480,51 @@ export const ResumeStudioPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Global Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Global Action Buttons & View Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Workspace Layout Mode Switcher */}
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-white/10 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setLayoutMode('split')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                layoutMode === 'split'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Side-by-side Editor & Preview (Balanced 50/50)"
+            >
+              <Columns className="w-3.5 h-3.5" />
+              <span>Split 50/50</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayoutMode('editor')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                layoutMode === 'editor'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Spacious Full-Width Editor Focus Mode"
+            >
+              <FileEdit className="w-3.5 h-3.5" />
+              <span>Editor Only</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayoutMode('preview')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                layoutMode === 'preview'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Full-Size Paper Preview & Live ATS Score"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Preview & ATS</span>
+            </button>
+          </div>
+
           {/* Hidden File Input */}
           <input
             type="file"
@@ -379,7 +542,7 @@ export const ResumeStudioPage: React.FC = () => {
             className="text-xs flex items-center gap-1.5"
           >
             <Upload className={`w-3.5 h-3.5 ${uploadLoading ? 'animate-spin' : ''}`} />
-            <span>{uploadLoading ? 'Parsing...' : 'Import Resume'}</span>
+            <span>{uploadLoading ? 'Parsing...' : 'Import'}</span>
           </Button>
 
           <Button
@@ -390,7 +553,7 @@ export const ResumeStudioPage: React.FC = () => {
             className="text-xs flex items-center gap-1.5"
           >
             <Save className={`w-3.5 h-3.5 ${isSavingVersion ? 'animate-spin' : ''}`} />
-            <span>Save Version</span>
+            <span>Save</span>
           </Button>
 
           {/* Versions Drawer Trigger Button */}
@@ -410,7 +573,6 @@ export const ResumeStudioPage: React.FC = () => {
           </Button>
 
           {/* Multi-JD Comparison Trigger Button */}
-
           <Button
             variant="outline"
             size="sm"
@@ -442,73 +604,50 @@ export const ResumeStudioPage: React.FC = () => {
         </div>
       )}
 
-      {/* Mobile Tab Switcher (Visible only on screens < lg) */}
-      <div className="lg:hidden flex items-center justify-center p-1 rounded-xl bg-slate-900 border border-white/10 mb-4">
-        <button
-          onClick={() => setMobileTab('editor')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-            mobileTab === 'editor'
-              ? 'bg-cyan-500 text-black shadow'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          Form Editor
-        </button>
-        <button
-          onClick={() => setMobileTab('preview')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-            mobileTab === 'preview'
-              ? 'bg-cyan-500 text-black shadow'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          Paper & ATS
-        </button>
-      </div>
-
-      {/* Split-Screen Studio Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Form Editor (7 Cols on LG) */}
-        <div className={`lg:col-span-7 space-y-4 ${mobileTab === 'editor' ? 'block' : 'hidden lg:block'}`}>
-          {/* Target Job Description Collapsible Accordion */}
-          <div className="bg-slate-900/70 border border-white/10 rounded-xl p-3.5">
-            <div
-              onClick={() => setJdOpen(!jdOpen)}
-              className="flex items-center justify-between cursor-pointer select-none"
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider">
-                  Target Job Description
-                </span>
-                {jobDescription && (
-                  <Badge variant="cyan" size="sm">
-                    Active Match
-                  </Badge>
-                )}
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 text-slate-400 transition-transform ${jdOpen ? 'rotate-180' : ''}`}
-              />
-            </div>
-
-            {jdOpen && (
-              <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
-                <p className="text-[11px] text-slate-400">
-                  Paste the JD below to activate the 40% keyword & semantic match scoring.
-                </p>
-                <textarea
-                  rows={3}
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste job description requirements here..."
-                  className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-            )}
+      {/* Workspace Area: Controlled by layoutMode */}
+      {layoutMode === 'split' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Left Column: Form Editor (50% on LG) */}
+          <div className="space-y-4">
+            {renderJobDescriptionAccordion()}
+            <ResumeFormEditor
+              resume={currentResume}
+              onChange={handleResumeChange}
+              sectionOrder={sectionOrder}
+              hiddenSections={hiddenSections}
+              onSectionOrderChange={setSectionOrder}
+              onToggleHideSection={toggleHideSection}
+              canUndo={historyIndex > 0}
+              canRedo={historyIndex < history.length - 1}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              autosaveState={autosaveState}
+              lastSavedTime={lastSavedTime}
+            />
           </div>
 
-          {/* Form Editor */}
+          {/* Right Column: Live Paper Preview & ATS Score Panel (50% on LG) */}
+          <div className="sticky top-20 space-y-4 max-h-[calc(100vh-5.5rem)] flex flex-col">
+            {renderRightPanel()}
+          </div>
+        </div>
+      ) : layoutMode === 'editor' ? (
+        <div className="max-w-4xl mx-auto space-y-4 w-full">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>
+                <strong>Editor Focus Mode:</strong> Full width unlocked. Side panels hidden for spacious writing.
+              </span>
+            </span>
+            <button
+              onClick={() => setLayoutMode('split')}
+              className="underline hover:text-white shrink-0 ml-2 font-medium"
+            >
+              Switch to Split
+            </button>
+          </div>
+          {renderJobDescriptionAccordion()}
           <ResumeFormEditor
             resume={currentResume}
             onChange={handleResumeChange}
@@ -524,82 +663,25 @@ export const ResumeStudioPage: React.FC = () => {
             lastSavedTime={lastSavedTime}
           />
         </div>
-
-        {/* Right Column: Live Paper Preview & ATS Score Panel (5 Cols on LG) */}
-        <div className={`lg:col-span-5 sticky top-20 space-y-4 ${mobileTab === 'preview' ? 'block' : 'hidden lg:block'}`}>
-          {/* Tab Switcher: Paper Preview vs ATS Score */}
-          <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-xl border border-white/10">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setRightViewMode('preview')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  rightViewMode === 'preview'
-                    ? 'bg-cyan-500 text-black shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Layout className="w-3.5 h-3.5" />
-                <span>Paper Preview</span>
-              </button>
-              <button
-                onClick={() => setRightViewMode('score')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  rightViewMode === 'score'
-                    ? 'bg-cyan-500 text-black shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Gauge className="w-3.5 h-3.5" />
-                <span>ATS Score</span>
-                {atsScoreData && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-black/20 text-black font-bold">
-                    {atsScoreData.overall_score}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Quick Score Pill on Preview Mode */}
-            {rightViewMode === 'preview' && atsScoreData && (
-              <button
-                onClick={() => setRightViewMode('score')}
-                className="flex items-center gap-1 text-[11px] font-mono text-cyan-400 bg-cyan-950/40 px-2 py-1 rounded-md border border-cyan-500/20 hover:border-cyan-400"
-              >
-                <span>Score:</span>
-                <span className="font-bold">{atsScoreData.overall_score}/100</span>
-              </button>
-            )}
+      ) : (
+        <div className="max-w-5xl mx-auto space-y-4 w-full">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300">
+            <span className="flex items-center gap-1.5">
+              <Eye className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>
+                <strong>Full Preview & ATS Mode:</strong> High-definition inspection of your resume formatting and ATS score.
+              </span>
+            </span>
+            <button
+              onClick={() => setLayoutMode('split')}
+              className="underline hover:text-white shrink-0 ml-2 font-medium"
+            >
+              Switch to Split
+            </button>
           </div>
-
-          {/* Conditional View */}
-          {rightViewMode === 'preview' ? (
-            <ResumePaperPreview
-              resume={currentResume}
-              template={template}
-              accentColor={accentColor}
-              fontSize={fontSize}
-              sectionOrder={sectionOrder}
-              hiddenSections={hiddenSections}
-              onTemplateChange={setTemplate}
-              onAccentColorChange={setAccentColor}
-              onFontSizeChange={setFontSize}
-            />
-          ) : (
-            <ATSScorePanel
-              scoreData={atsScoreData}
-              loading={scoringLoading}
-              onOpenTailor={() => {
-                setTailorRole('Target Role');
-                setTailorCompany('Target Company');
-                setTailorJDText(jobDescription);
-                setIsTailoringModalOpen(true);
-              }}
-              onPracticeWeakSpots={handlePracticeWeakSpots}
-              isPracticing={practicingSeeds}
-            />
-          )}
+          {renderRightPanel()}
         </div>
-      </div>
+      )}
 
       {/* Multi-JD Comparison Modal */}
       <MultiJDModal
