@@ -79,6 +79,57 @@ export interface ActiveResumeResponse {
   updated_at: string;
 }
 
+export interface SkillEvidenceItem {
+  skill: string;
+  status: 'matched' | 'partial' | 'missing';
+  evidence_line?: string | null;
+  note?: string | null;
+}
+
+export interface FactorScore {
+  name: string;
+  score: number;
+  weight_pct: number;
+  weighted_points: number;
+  feedback: string;
+}
+
+export interface FixIssueItem {
+  id: string;
+  category: 'metric' | 'action_verb' | 'missing_skill' | 'formatting' | 'section';
+  impact: 'high' | 'medium' | 'low';
+  title: string;
+  original_text: string;
+  section: string;
+  suggested_action: string;
+  potential_points: number;
+}
+
+export interface ATSScoreBreakdown {
+  overall_score: number;
+  jd_provided: boolean;
+  redistribution_note?: string | null;
+  factors: Record<string, FactorScore>;
+  skills_analysis: SkillEvidenceItem[];
+  matched_skills_count: number;
+  partial_skills_count: number;
+  missing_skills_count: number;
+  issues_list: FixIssueItem[];
+}
+
+export const evaluateResume = async (
+  canonicalResume: CanonicalResume,
+  jobDescription: string = '',
+  targetRole: string = 'Full Stack Developer'
+): Promise<ATSScoreBreakdown> => {
+  const response = await api.post<ATSScoreBreakdown>('/api/v1/resume/evaluate', {
+    canonical_resume: canonicalResume,
+    job_description: jobDescription,
+    target_role: targetRole,
+  });
+  return response.data;
+};
+
 export const parseUploadedResume = async (
   file: File,
   jobDescription: string = ''

@@ -26,14 +26,15 @@
 | **Phase 12** | Documentation & Viva Prep | ✅ COMPLETED | 25 Exhaustive technical Viva Q&As covering full-stack & AI architecture, 5-minute evaluator demo script, complete architecture documentation in `VIVA_PREP.md`, and updated `README.md`. |
 | **Change Request v2** | Streamlined & Simplified Platform | ✅ COMPLETED | Single-screen minimal landing (`/`), strict token verification on all AI/API endpoints (401 on unauthenticated), left sidebar + topbar app shell, mobile bottom tab bar, personalized greeting & empty state on `/dashboard`, Google photo avatar with initials fallback (`referrerPolicy="no-referrer"`), `/profile` view, global text reduction ($\le 4$ words titles, $\le 12$ words helper text, 1-3 words buttons, hover tooltips), preserved AI Orb & ScoreGauge, and per-user AI rate limiting with friendly error handling. |
 | **Phase F1 (Resume Flow v2)** | Upload, Parsing, Canonical Schema & Storage | ✅ COMPLETED | Canonical Resume JSON Pydantic schema, Gemini structured output parsing with retry and heuristic fallback, file guardrails with friendly errors for empty, corrupt, and scanned PDFs, Atlas active-resume model with versioning (`POST /parse-upload`, `POST /save-active`, `GET /active`, `GET /versions`), 6/6 dedicated tests passing. |
+| **Phase F2 (Resume Flow v2)** | Scoring Engine & Job Description Matching | ✅ COMPLETED | Deterministic 5-factor weighted scoring engine (40/15/15/15/15 with JD, 25/25/25/25 without JD with transparent note), semantic skill matching with exact evidence line citations (matched, partial, missing), impact-ranked fix issue generation, `POST /api/v1/resume/evaluate` endpoint, 6/6 dedicated tests passing (40/40 total). |
 
 ---
 
-## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 + Phase F1 Delivered)
+## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 + Phases F1 & F2 Delivered)
 
 - **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 34/34 automated tests passing across auth, data isolation, ATS, interview, report, and F1 canonical resume suites.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~7s).
+- **Automated Tests:** 40/40 automated tests passing across auth, data isolation, ATS, interview, report, F1 upload/parsing, and F2 scoring/JD matching suites.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in ~5s).
 - **Backend API:** FastAPI running with live MongoDB Atlas connection, Gemini AI failover, and active-resume storage.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).
 - **Security & Quota:** Strict Firebase ID token verification and per-user AI rate limiting (friendly 429 handler).

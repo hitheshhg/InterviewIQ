@@ -13,8 +13,10 @@ from app.models.canonical_resume import (
     SaveActiveResumeRequest,
     ActiveResumeResponse,
 )
+from app.models.canonical_scoring import ATSScoreBreakdown, EvaluateResumeRequest
 from app.services.canonical_parser import canonical_parser
 from app.services.canonical_resume_manager import canonical_resume_manager
+from app.services.canonical_scorer import canonical_scorer
 from app.dependencies import get_current_user
 from app.database import get_db
 
@@ -196,6 +198,32 @@ async def get_candidate_active_resume(
         if hasattr(active_doc.get("updated_at"), "isoformat")
         else str(active_doc.get("updated_at", "")),
     )
+
+
+@router.post("/evaluate", response_model=ATSScoreBreakdown)
+async def evaluate_canonical_resume(
+    payload: EvaluateResumeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Step 2: Evaluate candidate resume with the 5-factor weighted scoring engine.
+    Calculates transparent breakdown, identifies matched/partial/missing JD skills
+    with evidence line citations, and returns an impact-ordered fix list.
+    """
+    try:
+        resume_model = CanonicalResume(**payload.canonical_resume)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid canonical resume data: {str(e)}",
+        )
+
+    score_breakdown = canonical_scorer.evaluate(
+        resume=resume_model,
+        job_description=payload.job_description,
+        target_role=payload.target_role,
+    )
+    return score_breakdown
 
 
 @router.get("/versions")
