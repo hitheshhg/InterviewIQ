@@ -95,3 +95,4 @@ export const MinimalistLoadingVisual: React.FC<MinimalistLoadingVisualProps> = (
 };
 
 export default MinimalistLoadingVisual;
+
