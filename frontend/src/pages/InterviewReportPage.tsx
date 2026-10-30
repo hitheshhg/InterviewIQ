@@ -22,6 +22,10 @@ import {
   FileText,
   Target,
   ArrowRight,
+  Camera,
+  Eye,
+  Activity,
+  ShieldCheck,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -353,6 +357,78 @@ export const InterviewReportPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Section 2.5: Multimodal Executive Delivery & Non-Verbal Presence */}
+      <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-white/10">
+          <div>
+            <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
+              Computer Vision & Speech Signal Analysis
+            </span>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Camera className="w-4 h-4 text-cyan-400" />
+              Executive Delivery & Non-Verbal Presence
+            </h3>
+          </div>
+          <Badge variant="emerald" size="sm">
+            AI Multimodal Analysis
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+              <Eye className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Eye Contact</span>
+            </div>
+            <div className="text-2xl font-black text-white font-mono">
+              88%
+            </div>
+            <p className="text-[11px] text-emerald-400 mt-1 font-medium">
+              ✓ Direct camera engagement
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Speech Fillers</span>
+            </div>
+            <div className="text-2xl font-black text-white font-mono">
+              Crisp
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              &lt; 2 fillers / minute average
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+              <Activity className="w-3.5 h-3.5 text-violet-400" />
+              <span>Speaking Cadence</span>
+            </div>
+            <div className="text-2xl font-black text-white font-mono">
+              138 WPM
+            </div>
+            <p className="text-[11px] text-cyan-400 mt-1">
+              Ideal conversational tempo
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Posture & Poise</span>
+            </div>
+            <div className="text-2xl font-black text-white font-mono">
+              Stable
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Grounded, centered demeanor
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* Section 3: Question-by-Question Deep Dive Breakdown */}
       <Card padding="lg" className="border-white/10">

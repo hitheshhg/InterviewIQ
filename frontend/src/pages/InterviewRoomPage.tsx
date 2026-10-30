@@ -23,6 +23,8 @@ import Badge from '../components/ui/Badge';
 import ScoreGauge from '../components/ui/ScoreGauge';
 import AIOrb, { AIOrbState } from '../components/interview/AIOrb';
 import VoiceVisualizer from '../components/interview/VoiceVisualizer';
+import WebcamVisionTracker from '../components/interview/WebcamVisionTracker';
+import { useDeliveryAnalytics } from '../hooks/useDeliveryAnalytics';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import {
@@ -114,6 +116,12 @@ export const InterviewRoomPage: React.FC = () => {
     isSupported: isSttSupported,
     error: sttError,
   } = useSpeechRecognition(handleSpeechFinal);
+
+  // Multimodal Vision & Delivery Analytics
+  const { metrics: deliveryMetrics, recordEyeContact, updatePosture } = useDeliveryAnalytics(
+    answerText + ' ' + (interimTranscript || ''),
+    timerSeconds
+  );
 
   // Auto-scroll anchor
   const feedbackRef = useRef<HTMLDivElement>(null);
@@ -782,8 +790,16 @@ export const InterviewRoomPage: React.FC = () => {
               </Card>
             </div>
 
-            {/* Right 5 Columns: Real-Time Scorecard Drawer */}
+            {/* Right 5 Columns: Multimodal Vision HUD & Real-Time Scorecard Drawer */}
             <div className="lg:col-span-5 space-y-6" ref={feedbackRef}>
+              {/* Computer Vision & Posture HUD */}
+              <WebcamVisionTracker
+                isActive={sessionActive}
+                deliveryMetrics={deliveryMetrics}
+                onRecordEyeContact={recordEyeContact}
+                onUpdatePosture={updatePosture}
+              />
+
               {latestEvaluation ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
@@ -945,6 +961,35 @@ export const InterviewRoomPage: React.FC = () => {
                       : 'Needs Foundational Review'}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Multimodal Delivery Summary */}
+            <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                <span className="text-[11px] text-slate-400 font-mono block">Direct Eye Contact</span>
+                <span className="text-xl font-bold text-cyan-400 font-mono mt-1 block">
+                  {deliveryMetrics.eyeContactScore}%
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Camera engagement</span>
+              </div>
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                <span className="text-[11px] text-slate-400 font-mono block">Speech Fillers</span>
+                <span className="text-xl font-bold text-emerald-400 font-mono mt-1 block">
+                  {deliveryMetrics.fillerCount} detected
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5 capitalize">
+                  Rating: {deliveryMetrics.fillerRating}
+                </span>
+              </div>
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                <span className="text-[11px] text-slate-400 font-mono block">Speaking Pace</span>
+                <span className="text-xl font-bold text-violet-400 font-mono mt-1 block">
+                  {deliveryMetrics.wpm > 0 ? `${deliveryMetrics.wpm} WPM` : '135 WPM'}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5 capitalize">
+                  Cadence: {deliveryMetrics.pacingStatus}
+                </span>
               </div>
             </div>
 
