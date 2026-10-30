@@ -249,3 +249,4 @@ async def test_api_export_and_self_test_endpoints():
         assert res_docx.status_code == 200
         assert "wordprocessingml" in res_docx.headers["content-type"]
         assert len(res_docx.content) > 1000
+

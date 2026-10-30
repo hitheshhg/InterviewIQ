@@ -76,6 +76,29 @@ export interface SessionSummary {
   completed_at?: string;
 }
 
+export interface ResumeVersionOption {
+  version: number;
+  file_name: string;
+  target_role: string;
+  is_active: boolean;
+  score?: number | null;
+}
+
+export interface InterviewActiveContext {
+  has_resume: boolean;
+  active_version: number | null;
+  file_name: string | null;
+  target_role: string;
+  job_description?: string;
+  question_seeds: string[];
+  versions: ResumeVersionOption[];
+}
+
+export const getInterviewActiveContext = async (): Promise<InterviewActiveContext> => {
+  const response = await api.get<InterviewActiveContext>('/api/v1/interview/active-context');
+  return response.data;
+};
+
 export const startInterview = async (
   payload: StartInterviewRequest
 ): Promise<StartInterviewResponse> => {

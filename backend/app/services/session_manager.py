@@ -157,13 +157,49 @@ class InterviewSessionManager:
         """Initialize session, generate Question 1, and persist to MongoDB."""
         session_id = str(uuid.uuid4())
 
-        # 1. Resolve resume context
+        # 1. Resolve resume context & active resume automatically
         resume_context = request.resume_text or ""
-        if not resume_context and request.resume_id:
-            resume_context = await self._fetch_resume_text(request.resume_id, user_id)
+        active_version: Optional[int] = None
+        question_seeds: List[str] = []
+
+        try:
+            from app.services.canonical_resume_manager import canonical_resume_manager
+            from app.services.question_seed_generator import question_seed_generator
+            from app.models.canonical_resume import CanonicalResume
+
+            active_doc = None
+            if request.resume_id:
+                versions = await canonical_resume_manager.list_resume_versions(user_id)
+                active_doc = next(
+                    (v for v in versions if str(v.get("_id")) == str(request.resume_id) or str(v.get("version")) == str(request.resume_id)),
+                    None,
+                )
+
+            if not active_doc:
+                active_doc = await canonical_resume_manager.get_active_resume(user_id)
+
+            if active_doc and "canonical_data" in active_doc:
+                active_version = active_doc.get("version", 1)
+                c_resume = CanonicalResume(**active_doc["canonical_data"])
+                question_seeds = question_seed_generator.generate_seeds(
+                    resume=c_resume,
+                    job_description=request.job_description or active_doc.get("job_description", ""),
+                    target_role=request.target_role,
+                )
+                if not resume_context:
+                    resume_context = (
+                        f"Candidate: {c_resume.contact.full_name}. Summary: {c_resume.summary}. "
+                        f"Key Skills: {', '.join(c_resume.all_skills()[:15])}."
+                    )
+        except Exception as e:
+            logger.warning(f"[SessionManager] Error resolving active resume seeds: {e}")
 
         if not resume_context:
             resume_context = f"Candidate interviewing for {request.target_role}. Relevant modern tech stack and projects."
+
+        if question_seeds:
+            seeds_block = "\n".join([f"- {s}" for s in question_seeds])
+            resume_context = f"{resume_context}\n\nQUESTION SEEDS TO PROBE (Focus on candidate's unproven claims/skills):\n{seeds_block}"
 
         # 2. Generate Question 1 via Gemini
         first_question: Optional[QuestionItem] = None
@@ -209,6 +245,8 @@ class InterviewSessionManager:
             "target_role": request.target_role,
             "job_description": request.job_description,
             "resume_id": request.resume_id,
+            "active_resume_version": active_version,
+            "question_seeds": question_seeds,
             "resume_context": resume_context[:2000],
             "total_questions": request.total_questions,
             "current_question_index": 1,
@@ -240,7 +278,9 @@ class InterviewSessionManager:
             current_question_index=1,
             current_difficulty=request.initial_difficulty,
             first_question=first_question,
-            status="in_progress"
+            status="in_progress",
+            active_resume_version=active_version,
+            question_seeds=question_seeds,
         )
 
     async def get_session(self, session_id: str, user_id: str) -> Optional[Dict[str, Any]]:

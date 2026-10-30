@@ -82,6 +82,12 @@ export interface DashboardMetrics {
     date: string;
   }>;
   dimension_averages: DimensionScore[];
+  resume_version_trend?: Array<{
+    version: number;
+    label: string;
+    score: number;
+    file_name: string;
+  }>;
 }
 
 export const generateReport = async (sessionId: string): Promise<InterviewReport> => {

@@ -87,6 +87,8 @@ class StartInterviewResponse(BaseModel):
     current_difficulty: str
     first_question: QuestionItem
     status: str = "in_progress"
+    active_resume_version: Optional[int] = None
+    question_seeds: List[str] = Field(default_factory=list)
 
 
 class SubmitAnswerRequest(BaseModel):

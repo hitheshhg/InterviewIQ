@@ -33,6 +33,64 @@ def get_user_id(current_user: Dict[str, Any]) -> str:
     return current_user.get("firebase_uid") or current_user.get("uid") or "anonymous_user"
 
 
+@router.get("/active-context")
+async def get_interview_active_context(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """
+    Phase F5: Retrieves candidate's active resume version, available versions,
+    and precomputed question seeds for the interview setup screen.
+    If the candidate has no resume yet, returns has_resume=False.
+    """
+    user_id = get_user_id(current_user)
+    from app.services.canonical_resume_manager import canonical_resume_manager
+    from app.services.question_seed_generator import question_seed_generator
+    from app.models.canonical_resume import CanonicalResume
+
+    active_doc = await canonical_resume_manager.get_active_resume(user_id)
+    versions = await canonical_resume_manager.list_resume_versions(user_id)
+
+    if not active_doc or "canonical_data" not in active_doc:
+        return {
+            "has_resume": False,
+            "active_version": None,
+            "file_name": None,
+            "target_role": "Full Stack Developer",
+            "question_seeds": [],
+            "versions": [],
+        }
+
+    c_resume = CanonicalResume(**active_doc["canonical_data"])
+    target_role = active_doc.get("target_role", "Full Stack Developer")
+    job_desc = active_doc.get("job_description", "")
+    seeds = question_seed_generator.generate_seeds(
+        resume=c_resume,
+        job_description=job_desc,
+        target_role=target_role,
+    )
+
+    clean_versions = [
+        {
+            "version": v.get("version", 1),
+            "file_name": v.get("file_name", "Resume.pdf"),
+            "target_role": v.get("target_role", target_role),
+            "is_active": v.get("is_active", False),
+            "score": v.get("current_score"),
+        }
+        for v in versions
+    ]
+
+    return {
+        "has_resume": True,
+        "active_version": active_doc.get("version", 1),
+        "file_name": active_doc.get("file_name", "Resume.pdf"),
+        "target_role": target_role,
+        "job_description": job_desc,
+        "question_seeds": seeds,
+        "versions": clean_versions,
+    }
+
+
 @router.post("/start", response_model=StartInterviewResponse)
 @limiter.limit("10/minute")
 async def start_interview_session(

@@ -62,3 +62,4 @@ class ExportSelfTestResult(BaseModel):
         default="ATS-readable",
         description="Green badge status for candidate confidence",
     )
+

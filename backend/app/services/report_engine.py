@@ -461,6 +461,35 @@ class ReportEngine:
             DimensionScore(dimension="Confidence & Tone", score=avg_score or 7.6, benchmark=7.5, percentage=int((avg_score or 7.6) * 10)),
         ]
 
+        # Look up latest resume ATS score and version trend from canonical manager
+        resume_version_trend = []
+        try:
+            from app.services.canonical_resume_manager import canonical_resume_manager
+            from app.models.canonical_resume import CanonicalResume
+            from app.services.canonical_scorer import canonical_scorer
+
+            versions = await canonical_resume_manager.list_resume_versions(user_id)
+            for v in reversed(versions):
+                ver_num = v.get("version", 1)
+                score = v.get("current_score")
+                if score is None and "canonical_data" in v:
+                    try:
+                        c_res = CanonicalResume(**v["canonical_data"])
+                        score = canonical_scorer.evaluate(c_res).overall_score
+                    except Exception:
+                        score = 75
+                resume_version_trend.append({
+                    "version": ver_num,
+                    "label": f"v{ver_num}",
+                    "score": score or 75,
+                    "file_name": v.get("file_name", f"Resume_v{ver_num}.pdf"),
+                })
+
+            if resume_version_trend and latest_ats is None:
+                latest_ats = resume_version_trend[-1]["score"]
+        except Exception as e:
+            logger.warning(f"[ReportEngine] Error building resume version trend: {e}")
+
         return DashboardMetrics(
             user_id=user_id,
             total_interviews_completed=total_completed,
@@ -470,7 +499,8 @@ class ReportEngine:
             latest_ats_score=latest_ats,
             recent_sessions=recent_sessions_summary,
             score_trend=score_trend,
-            dimension_averages=dimension_averages
+            dimension_averages=dimension_averages,
+            resume_version_trend=resume_version_trend,
         )
 
 
