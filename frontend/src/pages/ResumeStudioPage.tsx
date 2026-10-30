@@ -13,10 +13,7 @@ import { ResumeFormEditor } from '../components/resume/ResumeFormEditor';
 import { ResumePaperPreview } from '../components/resume/ResumePaperPreview';
 import { ATSScorePanel } from '../components/resume/ATSScorePanel';
 import { ExportDropdown } from '../components/resume/ExportDropdown';
-import { MultiJDModal } from '../components/resume/MultiJDModal';
 import { TailoringModal } from '../components/resume/TailoringModal';
-import { ResumeVersionsModal } from '../components/resume/ResumeVersionsModal';
-import { VersionCompareModal } from '../components/resume/VersionCompareModal';
 import Button from '../components/ui/Button';
 import { api } from '../services/api';
 import {
@@ -25,10 +22,7 @@ import {
   Layout,
   Gauge,
   ChevronDown,
-  Layers,
-  History,
   Columns,
-  FileEdit,
   Eye,
 } from 'lucide-react';
 
@@ -126,8 +120,8 @@ export const ResumeStudioPage: React.FC = () => {
 
   // Right Column View Mode: 'preview' (Paper) | 'score' (ATS Breakdown)
   const [rightViewMode, setRightViewMode] = useState<'preview' | 'score'>('preview');
-  // Workspace Layout Mode: 'split' (50/50 side-by-side) | 'editor' (Full width editor) | 'preview' (Full width preview & ATS)
-  type StudioLayoutMode = 'split' | 'editor' | 'preview';
+  // Workspace Layout Mode: 'split' (50/50 side-by-side) | 'preview' (Full width preview & ATS)
+  type StudioLayoutMode = 'split' | 'preview';
   const [layoutMode, setLayoutMode] = useState<StudioLayoutMode>('split');
 
   // Job Description for Live Tailoring Match
@@ -138,56 +132,20 @@ export const ResumeStudioPage: React.FC = () => {
   const [atsScoreData, setAtsScoreData] = useState<ATSScoreResponse | null>(null);
   const [scoringLoading, setScoringLoading] = useState<boolean>(false);
 
-  // Autosave & Versioning State
+  // Autosave State
   const [autosaveState, setAutosaveState] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [lastSavedTime, setLastSavedTime] = useState<string>('Just now');
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [bannerNotice, setBannerNotice] = useState<string | null>(null);
-  const [isMultiJDModalOpen, setIsMultiJDModalOpen] = useState<boolean>(false);
   const [isTailoringModalOpen, setIsTailoringModalOpen] = useState<boolean>(false);
   const [tailorRole, setTailorRole] = useState<string>('Full Stack Engineer');
   const [tailorCompany, setTailorCompany] = useState<string>('Target Company');
   const [tailorJDText, setTailorJDText] = useState<string>('');
 
-  // Version Management & Comparison State
-  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState<boolean>(false);
-  const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
-  const [compareVersionIds, setCompareVersionIds] = useState<{ id1: string; id2: string }>({
-    id1: '',
-    id2: '',
-  });
-  const [savedVersionsCount, setSavedVersionsCount] = useState<number>(0);
-
-  const refreshVersionsCount = useCallback(async () => {
-    try {
-      const res = await api.get<any[]>('/api/v1/resume-studio/versions');
-      setSavedVersionsCount(res.data.length);
-    } catch (err) {
-      // silent
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshVersionsCount();
-  }, [refreshVersionsCount]);
-
   const handleApplyTailoring = (tailored: CanonicalResume, role: string) => {
     handleResumeChange(tailored);
     setBannerNotice(`Tailored draft for "${role}" applied! Saved as new draft.`);
     setTimeout(() => setBannerNotice(null), 4000);
-    refreshVersionsCount();
-  };
-
-  const handleLoadVersionFromModal = (loaded: CanonicalResume, label: string) => {
-    handleResumeChange(loaded);
-    setBannerNotice(`Loaded "${label}" into active editor!`);
-    setTimeout(() => setBannerNotice(null), 4000);
-    refreshVersionsCount();
-  };
-
-  const handleOpenCompareFromModal = (id1: string, id2: string) => {
-    setCompareVersionIds({ id1, id2 });
-    setIsCompareModalOpen(true);
   };
 
   const [practicingSeeds, setPracticingSeeds] = useState<boolean>(false);
@@ -471,19 +429,6 @@ export const ResumeStudioPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setLayoutMode('editor')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all ${
-                layoutMode === 'editor'
-                  ? 'bg-cyan-500 text-black shadow font-semibold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Full-Width Editor"
-            >
-              <FileEdit className="w-3.5 h-3.5" />
-              <span>Editor</span>
-            </button>
-            <button
-              type="button"
               onClick={() => setLayoutMode('preview')}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all ${
                 layoutMode === 'preview'
@@ -515,33 +460,6 @@ export const ResumeStudioPage: React.FC = () => {
           >
             <Upload className={`w-3.5 h-3.5 ${uploadLoading ? 'animate-spin' : ''}`} />
             <span>{uploadLoading ? 'Importing...' : 'Import'}</span>
-          </Button>
-
-          {/* Versions Drawer Trigger Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsVersionsModalOpen(true)}
-            className="text-xs flex items-center gap-1 py-1 px-2 text-slate-300 hover:text-white"
-          >
-            <History className="w-3.5 h-3.5 text-violet-400" />
-            <span>Versions</span>
-            {savedVersionsCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono font-bold">
-                {savedVersionsCount}
-              </span>
-            )}
-          </Button>
-
-          {/* Multi-JD Comparison Trigger Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsMultiJDModalOpen(true)}
-            className="text-xs flex items-center gap-1 py-1 px-2 text-slate-300 hover:text-white"
-          >
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Compare JDs</span>
           </Button>
 
           {/* Export & ATS Self-Test Dropdown */}
@@ -592,43 +510,19 @@ export const ResumeStudioPage: React.FC = () => {
             {renderRightPanel()}
           </div>
         </div>
-      ) : layoutMode === 'editor' ? (
-        <div className="max-w-4xl mx-auto space-y-3 w-full">
-          {renderJobDescriptionAccordion()}
-          <ResumeFormEditor
-            resume={currentResume}
-            onChange={handleResumeChange}
-            sectionOrder={sectionOrder}
-            hiddenSections={hiddenSections}
-            onSectionOrderChange={setSectionOrder}
-            onToggleHideSection={toggleHideSection}
-            canUndo={historyIndex > 0}
-            canRedo={historyIndex < history.length - 1}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            autosaveState={autosaveState}
-            lastSavedTime={lastSavedTime}
-          />
-        </div>
       ) : (
         <div className="max-w-5xl mx-auto space-y-3 w-full">
+          <div className="flex justify-end mb-1">
+            <button
+              onClick={() => setLayoutMode('split')}
+              className="text-xs text-cyan-400 hover:text-cyan-300 underline"
+            >
+              ← Back to Split View
+            </button>
+          </div>
           {renderRightPanel()}
         </div>
       )}
-
-      {/* Multi-JD Comparison Modal */}
-      <MultiJDModal
-        isOpen={isMultiJDModalOpen}
-        onClose={() => setIsMultiJDModalOpen(false)}
-        resume={currentResume}
-        onSelectForTailoring={(role, company, text) => {
-          setIsMultiJDModalOpen(false);
-          setTailorRole(role);
-          setTailorCompany(company);
-          setTailorJDText(text);
-          setIsTailoringModalOpen(true);
-        }}
-      />
 
       {/* One-Click Truthful Tailoring Modal */}
       <TailoringModal
@@ -639,24 +533,6 @@ export const ResumeStudioPage: React.FC = () => {
         targetRole={tailorRole}
         targetCompany={tailorCompany}
         onApplyTailoring={handleApplyTailoring}
-      />
-
-      {/* Resume Versions Drawer / Modal */}
-      <ResumeVersionsModal
-        isOpen={isVersionsModalOpen}
-        onClose={() => setIsVersionsModalOpen(false)}
-        currentResume={currentResume}
-        currentScore={atsScoreData?.overall_score || 0}
-        onLoadVersion={handleLoadVersionFromModal}
-        onOpenCompare={handleOpenCompareFromModal}
-      />
-
-      {/* Side-by-Side Version Comparison Modal */}
-      <VersionCompareModal
-        isOpen={isCompareModalOpen}
-        onClose={() => setIsCompareModalOpen(false)}
-        versionId1={compareVersionIds.id1}
-        versionId2={compareVersionIds.id2}
       />
     </div>
 
