@@ -80,13 +80,11 @@ graph TD
 
 ## ✨ Core Engineering Features
 
-### 1. Resume Flow v2: "Upload, Improve, Rebuild"
-- **3-Step Stepper Pipeline:** Replaces legacy multi-page builder with a clean 3-step reactive workflow on `/analyzer`.
-- **Step 1 (Upload & Verify):** Parses PDF/DOCX resumes into strongly-typed `CanonicalResume` JSON schema with guardrails for empty, corrupt, or scanned files; allows instant corrections and persists active resume in MongoDB.
-- **Step 2 (Guided Improvement):** Deterministic 5-factor scoring engine (40% JD/keyword match, 15% section completeness, 15% quantified achievements, 15% action verbs, 15% formatting) with transparent weight redistribution to 25/25/25/25 without a JD. Includes semantic skill matcher with exact evidence citations, impact-ranked fix cards, interactive missing-skill questions, and Google X-Y-Z rewrites strictly adhering to the **Truth Rule** (never inventing numbers or facts; prompting `[Fill in: ...]` candidate inputs). ATS gauge updates live as rewrites are accepted.
-- **Step 3 (Rebuild ATS Resume):** 3 single-column ATS templates (Classic, Modern, Minimal), live paper-style preview with direct click-to-edit capabilities, 1-page/2-page fit indicator, automated export self-test re-parser with green "ATS-readable" badge, and version-tracked PDF/DOCX downloads (`Name_Resume.pdf`).
-- **Interview Studio Auto-Binding:** Active resume and question seeds (probing unproven skills and weak claims) automatically injected into mock interviews (`Using: Resume v3`).
-- **Full Guide & Viva Q&As:** See [`RESUME_FLOW_V2_GUIDE.md`](./RESUME_FLOW_V2_GUIDE.md) for 8 VTU Viva Questions and the 2-Minute Evaluator Demo Script.
+### 1. Hybrid ATS Resume Analyzer
+- **Deterministic Mathematical Scoring Formula:**
+  $$\text{ATS Score} = (\text{KeywordMatch} \times 0.35) + (\text{Sections} \times 0.20) + (\text{Metrics} \times 0.15) + (\text{ActionVerbs} \times 0.15) + (\text{Formatting} \times 0.15)$$
+- **Scanned Document Detection:** Rejects empty or image-only scanned PDFs ($<50$ characters).
+- **Gemini Semantic Extraction:** Maps skills, projects, and generates prioritized, high-impact improvements.
 
 ### 2. Real-Time Voice AI Mock Interview Room
 - **Native Browser Speech-to-Text:** Zero external API fees and zero latency using `window.SpeechRecognition`.

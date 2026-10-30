@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import {
   Mic,
   MicOff,
@@ -17,7 +16,6 @@ import {
   VolumeX,
   Radio,
   Sliders,
-  FileText,
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -34,8 +32,6 @@ import {
   QuestionItem,
   AnswerEvaluation,
   SessionSummary,
-  getInterviewActiveContext,
-  InterviewActiveContext,
 } from '../services/interviewService';
 
 const PRESET_ROLES = [
@@ -96,39 +92,6 @@ export const InterviewRoomPage: React.FC = () => {
   >([]);
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Resume context & automatic binding
-  const [resumeContext, setResumeContext] = useState<InterviewActiveContext | null>(null);
-  const [loadingContext, setLoadingContext] = useState(true);
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
-  const [bypassNoResume, setBypassNoResume] = useState(false);
-
-  // Load candidate active resume context on mount
-  useEffect(() => {
-    let isMounted = true;
-    const fetchContext = async () => {
-      try {
-        const ctx = await getInterviewActiveContext();
-        if (isMounted) {
-          setResumeContext(ctx);
-          if (ctx.has_resume) {
-            setSelectedVersion(ctx.active_version);
-            if (ctx.target_role) {
-              setTargetRole(ctx.target_role);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching interview resume context:', err);
-      } finally {
-        if (isMounted) setLoadingContext(false);
-      }
-    };
-    fetchContext();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Speech Hooks
   const {
@@ -211,7 +174,8 @@ export const InterviewRoomPage: React.FC = () => {
         target_role: selectedRole,
         total_questions: totalQuestions,
         initial_difficulty: initialDifficulty,
-        resume_id: selectedVersion ? String(selectedVersion) : undefined,
+        resume_text:
+          'Candidate with experience in Python, FastAPI, React, TypeScript, and MongoDB Atlas. Major project: InterviewIQ AI Platform.',
       });
 
       setSessionId(resp.session_id);
@@ -369,83 +333,11 @@ export const InterviewRoomPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Friendly Card if candidate has no active resume yet */}
-          {!loadingContext && !resumeContext?.has_resume && !bypassNoResume ? (
-            <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 text-center py-12 backdrop-blur-xl">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto mb-4">
-                <FileText className="w-6 h-6" />
-              </div>
-              <h2 className="text-lg font-bold text-white mb-1">Resume Required</h2>
-              <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
-                Upload your resume first to unlock tailored questions that probe your real projects and unproven skills.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link to="/analyzer">
-                  <Button variant="primary" size="md">
-                    Upload resume
-                  </Button>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={() => setBypassNoResume(true)}
-                  className="text-slate-400 hover:text-white text-xs"
-                >
-                  Continue without resume
-                </Button>
-              </div>
-            </Card>
-          ) : (
-            <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 backdrop-blur-xl">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-                Configure Interview Session
-              </h2>
-
-              {/* Active Resume Binding Indicator & Version Switcher */}
-              {resumeContext?.has_resume && (
-                <div className="mb-6 p-3.5 rounded-xl bg-white/[0.03] border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">
-                          Using: Resume v{selectedVersion ?? resumeContext.active_version}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          ({resumeContext.file_name || 'Resume.pdf'})
-                        </span>
-                      </div>
-                      {resumeContext.question_seeds.length > 0 && (
-                        <div className="text-[11px] text-cyan-300 mt-0.5 flex items-center gap-1">
-                          <Zap className="w-3 h-3 text-cyan-400" />
-                          <span>Probing {resumeContext.question_seeds.length} unproven skills & claims</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Version Picker Switch */}
-                  {resumeContext.versions.length > 1 && (
-                    <div className="flex items-center gap-2 self-start sm:self-center">
-                      <span className="text-[11px] text-slate-400">Switch:</span>
-                      <select
-                        value={selectedVersion ?? resumeContext.active_version ?? 1}
-                        onChange={(e) => setSelectedVersion(Number(e.target.value))}
-                        className="bg-black/50 border border-white/10 text-xs text-cyan-300 rounded-lg px-2.5 py-1 focus:outline-none focus:border-cyan-500"
-                      >
-                        {resumeContext.versions.map((v) => (
-                          <option key={v.version} value={v.version} className="bg-slate-900 text-white">
-                            Resume v{v.version} {v.is_active ? '(Active)' : ''} {v.score ? `[${v.score}%]` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              )}
+          <Card glow="cyan" padding="lg" className="border-cyan-500/20 bg-slate-900/60 backdrop-blur-xl">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-cyan-400" />
+              Configure Interview Session
+            </h2>
 
             {/* Target Role Selector */}
             <div className="mb-6">
@@ -575,9 +467,8 @@ export const InterviewRoomPage: React.FC = () => {
               )}
             </Button>
           </Card>
-        )}
-      </motion.div>
-    )}
+        </motion.div>
+      )}
 
       {/* =========================================================================
           VIEW 2: ACTIVE INTERVIEW ROOM WITH LIVING AI ORB & VOICE CONTROLS

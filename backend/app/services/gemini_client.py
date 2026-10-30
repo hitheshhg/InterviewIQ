@@ -27,10 +27,6 @@ class GeminiClient:
         self._client: Optional[genai.Client] = None
 
     @property
-    def is_configured(self) -> bool:
-        return bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
-
-    @property
     def client(self) -> genai.Client:
         if self._client is None:
             if not settings.GEMINI_API_KEY:

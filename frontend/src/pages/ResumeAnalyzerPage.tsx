@@ -1,175 +1,126 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import {
-  Upload,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
-  ChevronRight,
-  ArrowRight,
-  RefreshCw,
-  ShieldCheck,
-  Zap,
-  Download,
-  FileText,
-  FileCheck,
-  Edit3,
-  Layers,
-  TrendingUp,
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Upload, 
+  FileText, 
+  CheckCircle, 
+  AlertCircle, 
+  Sparkles, 
+  Check, 
+  Plus, 
+  Briefcase, 
+  Mic
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import ScoreGauge from '../components/ui/ScoreGauge';
-import {
-  CanonicalResume,
-  ATSScoreBreakdown,
-  FixIssueItem,
-  BulletRewriteOption,
-  ExportSelfTestResult,
-  parseUploadedResume,
-  evaluateResume,
-  saveActiveResume,
-  getActiveResume,
-  suggestBulletRewrites,
-  downloadExportFile,
-  runExportSelfTest,
-} from '../services/canonicalResumeService';
+import { api } from '../services/api';
+
+interface ATSAnalysis {
+  overall_score: number;
+  breakdown: {
+    keyword_match_score: number;
+    section_completeness_score: number;
+    formatting_score: number;
+    action_verbs_score: number;
+    quantifiable_impact_score: number;
+  };
+  matched_keywords: string[];
+  missing_keywords: string[];
+  actionable_tips: string[];
+  target_role: string;
+  parsed_data: {
+    candidate_name: string;
+    contact?: {
+      email?: string;
+      phone?: string;
+    };
+    technical_skills: string[];
+    experience: Array<{
+      role: string;
+      company: string;
+    }>;
+  };
+}
 
 const PRESET_JDS: Record<string, { role: string; jd: string }> = {
   fullstack: {
     role: 'Full Stack Developer',
-    jd: `We are looking for a Full Stack Software Engineer proficient in Python, FastAPI, React, TypeScript, and MongoDB. The candidate will design resilient microservices, build responsive frontend user interfaces, optimize database queries with indexing, and automate Docker deployments.`,
+    jd: `We are looking for a Full Stack Software Engineer proficient in Python, FastAPI, React, TypeScript, and MongoDB Atlas. The candidate will design resilient microservices, build responsive frontend user interfaces, optimize database queries with indexing, and automate Docker deployments. Knowledge of Redis caching and WebSockets is highly desired.`,
   },
   backend: {
     role: 'Backend Systems Engineer',
-    jd: `Seeking a Backend Engineer experienced in Python, FastAPI, PostgreSQL, Redis, and distributed systems. Responsible for high-concurrency API architecture, asynchronous worker pools, relational schema optimization, and Docker container orchestration.`,
+    jd: `Seeking a Backend Engineer experienced in Python, FastAPI, PostgreSQL, Redis, and distributed systems. Responsible for high-concurrency API architecture, asynchronous worker pools, relational schema optimization, and Docker container orchestration. Experience with Kafka and microservices architecture is preferred.`,
   },
   frontend: {
     role: 'Frontend UI/UX Engineer',
-    jd: `Looking for a Senior Frontend Engineer specialized in React, TypeScript, Tailwind CSS, and state management. You will construct high-performance web applications, optimize Lighthouse core web vitals, and integrate WebSocket real-time feeds.`,
+    jd: `Looking for a Senior Frontend Engineer specialized in React 18, TypeScript, Tailwind CSS, and state management. You will construct high-performance web applications, implement micro-interactions using Framer Motion, optimize Lighthouse core web vitals, and integrate WebSocket real-time feeds.`,
   },
 };
 
+const SAMPLE_RESUME_TEXT = `Hithesh HG
+Full Stack Software Engineer
+Email: hitheshhg@gmail.com | Phone: +91 9876543210 | GitHub: github.com/hitheshhg | LinkedIn: linkedin.com/in/hitheshhg
+
+SUMMARY
+Results-driven Full Stack Developer with expertise in building scalable, real-time web applications using Python, FastAPI, React, TypeScript, and MongoDB.
+
+TECHNICAL SKILLS
+Languages: Python, TypeScript, JavaScript, SQL
+Frameworks: FastAPI, React.js, Tailwind CSS, Node.js
+Databases & Cloud: MongoDB Atlas, Redis, PostgreSQL, Docker, AWS
+Tools: Git, Pytest, WebSockets
+
+EXPERIENCE
+Senior Full Stack Developer | Tech Innovations (2023 - Present)
+• Architected and deployed microservices backend using FastAPI and MongoDB, handling over 10,000 requests per minute with 99.9% uptime.
+• Reduced API endpoint response times by 45% through implementation of Redis caching and compound database indexing strategies.
+• Engineered responsive frontend user interfaces with React and TypeScript, boosting user engagement metrics by 30%.
+• Automated CI/CD deployment pipelines using Docker and GitHub Actions, cutting release turnaround time from 2 hours to 15 minutes.
+
+PROJECTS
+InterviewIQ - Voice AI Mock Interview Platform
+• Built real-time WebSocket interview platform with Web Speech API audio processing and Google Gemini structured evaluation.
+• Implemented deterministic ATS scoring engine analyzing keyword density, action verbs, and quantified metric achievements.
+
+EDUCATION
+Bachelor of Engineering in Computer Science & Engineering (2020 - 2024)
+Visvesvaraya Technological University (VTU) | CGPA: 8.9/10`;
+
 export const ResumeAnalyzerPage: React.FC = () => {
+  const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Stepper state: 1 = Upload, 2 = Guided Improvement, 3 = Rebuild
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-
-  // Resume & JD Data
-  const [canonicalResume, setCanonicalResume] = useState<CanonicalResume | null>(null);
+  // Form State
+  const [file, setFile] = useState<File | null>(null);
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
-  const [jobDescription, setJobDescription] = useState('');
-  const [fileName, setFileName] = useState('Resume.pdf');
-  const [activeResumeVersion, setActiveResumeVersion] = useState<number>(1);
-  const [initialScore, setInitialScore] = useState<number | null>(null);
+  const [jobDescription, setJobDescription] = useState(PRESET_JDS.fullstack.jd);
+  const [activePreset, setActivePreset] = useState<string>('fullstack');
 
-  // ATS Evaluation & Fixes
-  const [scoreBreakdown, setScoreBreakdown] = useState<ATSScoreBreakdown | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [evaluating, setEvaluating] = useState(false);
+  // UI Processing State
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<ATSAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
-  // Step 2: Fix Cards & AI Rewrites State
-  const [loadingRewrites, setLoadingRewrites] = useState<Record<string, boolean>>({});
-  const [rewritesByIssue, setRewritesByIssue] = useState<Record<string, BulletRewriteOption[]>>({});
-  const [selectedRewriteId, setSelectedRewriteId] = useState<Record<string, string>>({});
-  const [fillInValues, setFillInValues] = useState<Record<string, string>>({});
-  const [acceptedIssues, setAcceptedIssues] = useState<Set<string>>(new Set());
-  const [skippedIssues, setSkippedIssues] = useState<Set<string>>(new Set());
-  const [editingIssueId, setEditingIssueId] = useState<string | null>(null);
-  const [manualEditText, setManualEditText] = useState('');
-
-  // Step 3: Template & Export State
-  const [template, setTemplate] = useState<'classic' | 'modern' | 'minimal'>('classic');
-  const [exporting, setExporting] = useState<string | null>(null);
-  const [selfTestResult, setSelfTestResult] = useState<ExportSelfTestResult | null>(null);
-  const [inlineEditingKey, setInlineEditingKey] = useState<string | null>(null);
-
-  // Load active resume on initial mount if available
-  useEffect(() => {
-    let isMounted = true;
-    const fetchActive = async () => {
-      try {
-        const active = await getActiveResume();
-        if (isMounted && active && active.canonical_resume) {
-          setCanonicalResume(active.canonical_resume);
-          setTargetRole(active.target_role || 'Full Stack Developer');
-          setJobDescription(active.job_description || '');
-          setActiveResumeVersion(active.version || 1);
-          // Evaluate loaded resume
-          runEvaluation(active.canonical_resume, active.job_description, active.target_role, true);
-          setStep(2);
-        }
-      } catch (e) {
-        // User can upload a new resume
-      }
-    };
-    fetchActive();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Run ATS evaluation
-  const runEvaluation = async (
-    resume: CanonicalResume,
-    jd: string = jobDescription,
-    role: string = targetRole,
-    isInitial: boolean = false
-  ) => {
-    setEvaluating(true);
-    try {
-      const breakdown = await evaluateResume(resume, jd, role);
-      setScoreBreakdown(breakdown);
-      if (isInitial || initialScore === null) {
-        setInitialScore(breakdown.overall_score);
-      }
-    } catch (err: any) {
-      console.error('Evaluation error:', err);
-    } finally {
-      setEvaluating(false);
-    }
+  // Set Preset JD
+  const handleSelectPreset = (key: string) => {
+    setActivePreset(key);
+    setTargetRole(PRESET_JDS[key].role);
+    setJobDescription(PRESET_JDS[key].jd);
   };
 
-  // Step 1: File Upload & Parse
-  const handleFileUpload = async (selectedFile: File) => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const result = await parseUploadedResume(selectedFile, jobDescription);
-      setCanonicalResume(result.canonical_resume);
-      setFileName(selectedFile.name);
-
-      // Save as active resume immediately
-      const saved = await saveActiveResume(
-        result.canonical_resume,
-        targetRole,
-        jobDescription,
-        selectedFile.name
-      );
-      setActiveResumeVersion(saved.version);
-
-      // Run initial evaluation
-      await runEvaluation(result.canonical_resume, jobDescription, targetRole, true);
-      setStep(2);
-    } catch (err: any) {
-      const msg = err.response?.data?.detail || err.message || 'Error parsing resume file.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Drag & drop handlers
+  // Drag and Drop
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    else if (e.type === 'dragleave') setDragActive(false);
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -177,1136 +128,391 @@ export const ResumeAnalyzerPage: React.FC = () => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+      handleFileSelected(e.dataTransfer.files[0]);
     }
   };
 
-  // Step 2: Request AI Bullet Rewrites
-  const handleFetchRewrites = async (issue: FixIssueItem) => {
-    setLoadingRewrites((prev) => ({ ...prev, [issue.id]: true }));
-    try {
-      const res = await suggestBulletRewrites(
-        issue.original_text,
-        issue.category,
-        issue.section,
-        targetRole,
-        jobDescription
-      );
-      setRewritesByIssue((prev) => ({ ...prev, [issue.id]: res.suggestions }));
-      if (res.suggestions.length > 0) {
-        setSelectedRewriteId((prev) => ({ ...prev, [issue.id]: res.suggestions[0].rewrite_id }));
-      }
-    } catch (err) {
-      console.error('Error fetching bullet rewrites:', err);
-    } finally {
-      setLoadingRewrites((prev) => ({ ...prev, [issue.id]: false }));
-    }
-  };
-
-  // Accept a bullet rewrite
-  const handleAcceptBulletRewrite = async (issue: FixIssueItem) => {
-    if (!canonicalResume) return;
-
-    const suggestions = rewritesByIssue[issue.id] || [];
-    const chosenId = selectedRewriteId[issue.id] || (suggestions[0] && suggestions[0].rewrite_id);
-    const chosenOption = suggestions.find((s) => s.rewrite_id === chosenId);
-
-    let replacementText = chosenOption ? chosenOption.text : issue.original_text;
-
-    // Plug in candidate's fill-in value if typed
-    const fillIn = fillInValues[issue.id];
-    if (fillIn && fillIn.trim()) {
-      replacementText = replacementText.replace(/\[Fill in:[^\]]+\]/gi, fillIn.trim());
-    }
-
-    // Apply replacement into canonical resume bullets
-    const updatedResume: CanonicalResume = JSON.parse(JSON.stringify(canonicalResume));
-    let replaced = false;
-
-    for (const exp of updatedResume.experience) {
-      for (let i = 0; i < exp.bullets.length; i++) {
-        if (exp.bullets[i] === issue.original_text || exp.bullets[i].includes(issue.original_text.slice(0, 30))) {
-          exp.bullets[i] = replacementText;
-          replaced = true;
-          break;
-        }
-      }
-      if (replaced) break;
-    }
-
-    if (!replaced) {
-      for (const proj of updatedResume.projects) {
-        for (let i = 0; i < proj.bullets.length; i++) {
-          if (proj.bullets[i] === issue.original_text || proj.bullets[i].includes(issue.original_text.slice(0, 30))) {
-            proj.bullets[i] = replacementText;
-            replaced = true;
-            break;
-          }
-        }
-        if (replaced) break;
-      }
-    }
-
-    setCanonicalResume(updatedResume);
-    setAcceptedIssues((prev) => new Set(prev).add(issue.id));
-
-    // Persist and re-evaluate live
-    await saveActiveResume(updatedResume, targetRole, jobDescription, fileName);
-    await runEvaluation(updatedResume, jobDescription, targetRole);
-  };
-
-  // Confirm and add missing skill
-  const handleConfirmMissingSkill = async (issue: FixIssueItem) => {
-    if (!canonicalResume) return;
-
-    const skillToAdd = issue.original_text.trim();
-    if (!skillToAdd) return;
-
-    const updatedResume: CanonicalResume = JSON.parse(JSON.stringify(canonicalResume));
-    if (!updatedResume.skills.developer_tools.includes(skillToAdd)) {
-      updatedResume.skills.developer_tools.push(skillToAdd);
-    }
-
-    setCanonicalResume(updatedResume);
-    setAcceptedIssues((prev) => new Set(prev).add(issue.id));
-
-    // Persist and re-evaluate live
-    await saveActiveResume(updatedResume, targetRole, jobDescription, fileName);
-    await runEvaluation(updatedResume, jobDescription, targetRole);
-  };
-
-  // Skip an issue
-  const handleSkipIssue = (issueId: string) => {
-    setSkippedIssues((prev) => new Set(prev).add(issueId));
-  };
-
-  // Manual inline edit on fix card
-  const handleSaveManualEdit = async (issue: FixIssueItem) => {
-    if (!canonicalResume || !manualEditText.trim()) return;
-
-    const updatedResume: CanonicalResume = JSON.parse(JSON.stringify(canonicalResume));
-    let replaced = false;
-
-    for (const exp of updatedResume.experience) {
-      for (let i = 0; i < exp.bullets.length; i++) {
-        if (exp.bullets[i] === issue.original_text) {
-          exp.bullets[i] = manualEditText.trim();
-          replaced = true;
-          break;
-        }
-      }
-      if (replaced) break;
-    }
-
-    setCanonicalResume(updatedResume);
-    setAcceptedIssues((prev) => new Set(prev).add(issue.id));
-    setEditingIssueId(null);
-    setManualEditText('');
-
-    await saveActiveResume(updatedResume, targetRole, jobDescription, fileName);
-    await runEvaluation(updatedResume, jobDescription, targetRole);
-  };
-
-  // Step 3: Direct Live Inline Edit on Paper Preview
-  const handleDirectEdit = async (fieldPath: string, newValue: string) => {
-    if (!canonicalResume) return;
-    const updated: CanonicalResume = JSON.parse(JSON.stringify(canonicalResume));
-
-    if (fieldPath === 'summary') {
-      updated.summary = newValue;
-    } else if (fieldPath.startsWith('exp_bullet_')) {
-      const parts = fieldPath.split('_');
-      const expIdx = parseInt(parts[2], 10);
-      const bIdx = parseInt(parts[3], 10);
-      if (updated.experience[expIdx] && updated.experience[expIdx].bullets[bIdx] !== undefined) {
-        updated.experience[expIdx].bullets[bIdx] = newValue;
-      }
-    } else if (fieldPath.startsWith('proj_bullet_')) {
-      const parts = fieldPath.split('_');
-      const pIdx = parseInt(parts[2], 10);
-      const bIdx = parseInt(parts[3], 10);
-      if (updated.projects[pIdx] && updated.projects[pIdx].bullets[bIdx] !== undefined) {
-        updated.projects[pIdx].bullets[bIdx] = newValue;
-      }
-    }
-
-    setCanonicalResume(updated);
-    setInlineEditingKey(null);
-    await saveActiveResume(updated, targetRole, jobDescription, fileName);
-    await runEvaluation(updated, jobDescription, targetRole);
-  };
-
-  // Step 3: Export PDF or DOCX
-  const handleExport = async (format: 'pdf' | 'docx') => {
-    if (!canonicalResume) return;
-    setExporting(format);
+  const handleFileSelected = (selectedFile: File) => {
     setError(null);
+    const validExtensions = ['.pdf', '.docx'];
+    const hasValidExt = validExtensions.some((ext) => selectedFile.name.toLowerCase().endsWith(ext));
+
+    if (!hasValidExt) {
+      setError('Please upload a PDF or DOCX resume document.');
+      return;
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      setError('File size exceeds the 5MB limit.');
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
+  // Submit Upload & Analysis
+  const handleAnalyze = async () => {
+    setError(null);
+    setAnalyzing(true);
+    setAnalysis(null);
 
     try {
-      // 1. Download file
-      const { blob, filename } = await downloadExportFile(
-        canonicalResume,
-        template,
-        format,
-        targetRole
-      );
+      if (file) {
+        // Multipart Form Upload
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('target_role', targetRole);
+        formData.append('job_description', jobDescription);
 
-      // Trigger browser download
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+        const headers: Record<string, string> = { 'Content-Type': 'multipart/form-data' };
+        if (token) headers.Authorization = `Bearer ${token}`;
 
-      // 2. Run Self-Test Verification
-      const testRes = await runExportSelfTest(
-        canonicalResume,
-        template,
-        format,
-        targetRole
-      );
-      setSelfTestResult(testRes);
+        const res = await api.post('/api/v1/resume/upload', formData, { headers });
+        setAnalysis(res.data.ats_analysis);
+      } else {
+        // Fallback: Analyze Sample Resume Text directly
+        const params = new URLSearchParams();
+        params.append('resume_text', SAMPLE_RESUME_TEXT);
+        params.append('target_role', targetRole);
+        params.append('job_description', jobDescription);
 
-      // 3. Save as incremented version in MongoDB
-      const saved = await saveActiveResume(
-        canonicalResume,
-        targetRole,
-        jobDescription,
-        filename
+        const res = await api.post('/api/v1/resume/analyze-text', params);
+        setAnalysis(res.data);
+      }
+    } catch (err: unknown) {
+      const errorResponse = err as { response?: { data?: { detail?: string } } };
+      setError(
+        errorResponse.response?.data?.detail ||
+          'Failed to complete resume analysis. Please verify your file format.'
       );
-      setActiveResumeVersion(saved.version);
-    } catch (err: any) {
-      console.error('Export error:', err);
-      setError('Export failed. Please check network and try again.');
     } finally {
-      setExporting(null);
+      setAnalyzing(false);
     }
   };
 
-  // Filter visible fix issues
-  const visibleIssues = (scoreBreakdown?.issues_list || []).filter(
-    (issue) => !acceptedIssues.has(issue.id) && !skippedIssues.has(issue.id)
-  );
-
-  // Compute total lines for 1-page / 2-page fit indicator
-  const totalBullets = canonicalResume
-    ? canonicalResume.experience.reduce((sum, e) => sum + e.bullets.length, 0) +
-      canonicalResume.projects.reduce((sum, p) => sum + p.bullets.length, 0)
-    : 0;
-  const isOnePageFit = totalBullets <= 10 && (canonicalResume?.experience.length || 0) <= 2;
+  // Quick Demo: Load and analyze Sample Resume immediately
+  const handleLoadSampleResume = () => {
+    setFile(null);
+    handleAnalyze();
+  };
 
   return (
-    <div className="space-y-6 pt-6">
-      {/* 3-Step Header Stepper */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
-            Resume Flow Studio
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Upload, improve with truthful AI, and rebuild ATS-friendly.
-          </p>
-        </div>
-
-        {/* Stepper Indicator */}
-        <div className="flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-xl p-1.5 text-xs">
-          <button
-            onClick={() => setStep(1)}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              step === 1
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <span className="w-4 h-4 rounded-full bg-cyan-500/30 text-[10px] flex items-center justify-center">1</span>
-            Upload
-          </button>
-
-          <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-
-          <button
-            onClick={() => canonicalResume && setStep(2)}
-            disabled={!canonicalResume}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              step === 2
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                : canonicalResume
-                ? 'text-slate-400 hover:text-white'
-                : 'text-slate-600 cursor-not-allowed'
-            }`}
-          >
-            <span className="w-4 h-4 rounded-full bg-cyan-500/30 text-[10px] flex items-center justify-center">2</span>
-            Guided Fixes
-          </button>
-
-          <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-
-          <button
-            onClick={() => canonicalResume && setStep(3)}
-            disabled={!canonicalResume}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-              step === 3
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                : canonicalResume
-                ? 'text-slate-400 hover:text-white'
-                : 'text-slate-600 cursor-not-allowed'
-            }`}
-          >
-            <span className="w-4 h-4 rounded-full bg-cyan-500/30 text-[10px] flex items-center justify-center">3</span>
-            Rebuild
-          </button>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-6 text-slate-100">
+      
+      {/* Header */}
+      <div className="border-b border-white/10 pb-4">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+          Resume ATS Scanner
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          Upload your resume to evaluate keyword match.
+        </p>
       </div>
 
-      {/* Global Error Banner */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-            <span>{error}</span>
-          </div>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-white text-xs">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* =================================================================== */}
-      {/* STEP 1: UPLOAD & ACTIVE RESUME STORAGE */}
-      {/* =================================================================== */}
-      {step === 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
-        >
-          {/* File Upload Stage */}
-          <div className="lg:col-span-7 space-y-4">
-            <Card className="p-6 border-white/10 bg-white/[0.02]">
-              <h2 className="text-base font-semibold text-white mb-1">Upload Resume</h2>
-              <p className="text-xs text-slate-400 mb-4">
-                Upload your PDF or DOCX resume to extract and verify.
-              </p>
-
-              <div
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                  dragActive
-                    ? 'border-cyan-400 bg-cyan-500/10'
-                    : 'border-white/10 hover:border-cyan-500/40 bg-white/[0.01]'
-                }`}
+      {/* Main Form Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        
+        {/* Left Column: File Upload Area (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <Card padding="md" glow="cyan">
+            <h3 className="text-sm font-bold text-white mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-cyan-400" />
+                Resume document
+              </span>
+              <button
+                type="button"
+                onClick={handleLoadSampleResume}
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-medium hover:underline flex items-center gap-1"
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.docx"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                />
-                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto mb-3">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <p className="text-sm font-medium text-slate-200">
-                  {loading ? 'Parsing resume...' : 'Drop your resume here, or browse'}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1">Supports PDF & DOCX up to 5MB</p>
-              </div>
+                <Sparkles className="w-3 h-3" />
+                Use sample
+              </button>
+            </h3>
 
-              {/* Already loaded active resume notice */}
-              {canonicalResume && (
-                <div className="mt-4 p-3 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs text-slate-200">
-                      Active: {canonicalResume.contact.full_name} (v{activeResumeVersion})
-                    </span>
+            {/* Drag & Drop Zone */}
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 ${
+                dragActive
+                  ? 'border-cyan-400 bg-cyan-500/10 scale-[1.01]'
+                  : file
+                  ? 'border-emerald-500/40 bg-emerald-500/5'
+                  : 'border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.02]'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleFileSelected(e.target.files[0])}
+              />
+
+              {file ? (
+                <div className="flex flex-col items-center justify-center space-y-2">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                    <Check className="w-6 h-6" />
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => setStep(2)}>
-                    View Fixes
-                  </Button>
+                  <div className="font-semibold text-sm text-white">{file.name}</div>
+                  <div className="text-xs text-slate-400 font-mono">
+                    {Math.round(file.size / 1024)} KB • Click or drop another file to replace
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/5 text-cyan-400 flex items-center justify-center border border-white/10 group-hover:scale-105 transition-transform">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-white">Click to upload</span> or drag and drop
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    PDF or DOCX documents up to 5MB (Text-based with standard fonts recommended)
+                  </div>
                 </div>
               )}
-            </Card>
-          </div>
-
-          {/* Target Role & Optional JD */}
-          <div className="lg:col-span-5 space-y-4">
-            <Card className="p-6 border-white/10 bg-white/[0.02]">
-              <h2 className="text-base font-semibold text-white mb-1">Target Job (Optional)</h2>
-              <p className="text-xs text-slate-400 mb-4">
-                Paste a target job description for 40% keyword matching.
-              </p>
-
-              {/* Preset quick pills */}
-              <div className="flex gap-2 mb-3">
-                {Object.keys(PRESET_JDS).map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setTargetRole(PRESET_JDS[key].role);
-                      setJobDescription(PRESET_JDS[key].jd);
-                    }}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
-                  >
-                    {PRESET_JDS[key].role.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[11px] font-medium text-slate-400 block mb-1">
-                    Target Role Title
-                  </label>
-                  <input
-                    type="text"
-                    value={targetRole}
-                    onChange={(e) => setTargetRole(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-500"
-                    placeholder="e.g. Full Stack Developer"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-medium text-slate-400 block mb-1">
-                    Job Description
-                  </label>
-                  <textarea
-                    rows={5}
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none"
-                    placeholder="Optional: Paste JD text here..."
-                  />
-                </div>
-              </div>
-            </Card>
-          </div>
-        </motion.div>
-      )}
-
-      {/* =================================================================== */}
-      {/* STEP 2: GUIDED IMPROVEMENT (LIVE ATS SCORE, FIX LIST, TRUTHFUL REWRITES) */}
-      {/* =================================================================== */}
-      {step === 2 && scoreBreakdown && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="space-y-6"
-        >
-          {/* Top Row: Live ATS Score Gauge + Transparent 5-Factor Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Score Gauge Card */}
-            <Card className="lg:col-span-4 p-6 border-white/10 bg-white/[0.02] flex flex-col items-center justify-center text-center">
-              <ScoreGauge
-                score={scoreBreakdown.overall_score}
-                size={160}
-                label="ATS Score"
-                sublabel={scoreBreakdown.overall_score >= 75 ? 'Strong Match' : 'Needs Optimization'}
-              />
-              <p className="text-[11px] text-slate-400 mt-2 flex items-center justify-center gap-1.5 min-h-[20px]">
-                {evaluating ? (
-                  <>
-                    <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
-                    <span className="text-cyan-300">Recalculating ATS score...</span>
-                  </>
-                ) : (
-                  <span>Updates dynamically as you accept verified fixes.</span>
-                )}
-              </p>
-            </Card>
-
-            {/* Factor Scores Grid */}
-            <Card className="lg:col-span-8 p-6 border-white/10 bg-white/[0.02] flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-white">5-Factor ATS Scoring</h3>
-                  <Badge variant={scoreBreakdown.jd_provided ? 'cyan' : 'amber'}>
-                    {scoreBreakdown.jd_provided ? 'With Job Description' : 'Weight Redistributed'}
-                  </Badge>
-                </div>
-
-                {scoreBreakdown.redistribution_note && (
-                  <div className="mb-3 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300">
-                    {scoreBreakdown.redistribution_note}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Object.entries(scoreBreakdown.factors).map(([key, factor]) => (
-                    <div
-                      key={key}
-                      className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col justify-between"
-                    >
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-300">{factor.name}</span>
-                        <span className="font-semibold text-cyan-400">
-                          {factor.score}/100 ({factor.weight_pct}%)
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden my-1">
-                        <div
-                          className="bg-cyan-400 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min(100, factor.score)}%` }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-slate-400 line-clamp-1">{factor.feedback}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Fix List Section Header */}
-          <div className="flex items-center justify-between pt-2">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-cyan-400" />
-                Actionable Fixes ({visibleIssues.length})
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Sorted by ATS impact. Rewrites never fabricate unverified facts.
-              </p>
             </div>
 
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => setStep(3)}
-              className="flex items-center gap-1.5"
-            >
-              <span>Build ATS Resume</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-
-          {/* Fix Cards List */}
-          {visibleIssues.length === 0 ? (
-            <Card className="p-8 text-center border-white/10 bg-white/[0.02]">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-3">
-                <CheckCircle2 className="w-6 h-6" />
+            {error && (
+              <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                <span>{error}</span>
               </div>
-              <h3 className="text-sm font-semibold text-white">All Fixes Completed!</h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                Your resume satisfies ATS standards. Proceed to generate your clean rebuilt resume.
-              </p>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setStep(3)}
-                className="mt-4"
-              >
-                Proceed to Rebuild
-              </Button>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {visibleIssues.map((issue) => {
-                const isSkillIssue = issue.category === 'missing_skill';
-                const rewrites = rewritesByIssue[issue.id] || [];
-                const isLoading = loadingRewrites[issue.id] || false;
-                const isEditing = editingIssueId === issue.id;
+            )}
+          </Card>
+        </div>
 
-                return (
-                  <Card
-                    key={issue.id}
-                    className="p-5 border-white/10 bg-white/[0.02] hover:border-cyan-500/30 transition-all space-y-3"
-                  >
-                    {/* Top Row: Title, Impact Badge & Potential Points */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            issue.impact === 'high'
-                              ? 'amber'
-                              : issue.impact === 'medium'
-                              ? 'cyan'
-                              : 'slate'
-                          }
-                        >
-                          {issue.impact.toUpperCase()} IMPACT
-                        </Badge>
-                        <span className="text-xs font-semibold text-white">{issue.title}</span>
-                      </div>
+        {/* Right Column: Target Job Description (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          <Card padding="md" glow="violet">
+            <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-violet-400" />
+              Target Job Description (JD)
+            </h3>
 
-                      <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 w-fit">
-                        +{issue.potential_points} pts
-                      </span>
-                    </div>
+            {/* Presets */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {Object.keys(PRESET_JDS).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleSelectPreset(key)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border transition ${
+                    activePreset === key
+                      ? 'bg-violet-500/20 text-violet-300 border-violet-500/40 font-semibold'
+                      : 'bg-white/5 text-slate-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  {PRESET_JDS[key].role}
+                </button>
+              ))}
+            </div>
 
-                    {/* Original Text or Question */}
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
-                      {isSkillIssue ? (
-                        <div className="space-y-1">
-                          <p className="font-medium text-white">Have you used {issue.original_text}?</p>
-                          <p className="text-[11px] text-slate-400">
-                            Only confirm if you have practical experience. We never add unverified skills.
-                          </p>
+            <textarea
+              rows={6}
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste target job description or requirements here..."
+              className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 resize-none font-sans leading-relaxed"
+            />
+
+            <Button
+              variant="primary"
+              size="md"
+              loading={analyzing}
+              icon={<Sparkles className="w-4 h-4" />}
+              onClick={handleAnalyze}
+              className="w-full mt-3"
+            >
+              {analyzing ? 'Scanning...' : 'Scan resume'}
+            </Button>
+          </Card>
+        </div>
+
+      </div>
+
+      {/* Analysis Results Section */}
+      <AnimatePresence>
+        {analysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8"
+          >
+            {/* Top Score Banner Card */}
+            <Card padding="lg" glow="emerald" className="bg-[#0e1320]/95 border-emerald-500/30">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                
+                {/* Score Gauge */}
+                <div className="md:col-span-4 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/10 pb-6 md:pb-0">
+                  <ScoreGauge
+                    score={analysis.overall_score}
+                    size={210}
+                    strokeWidth={16}
+                    label="Overall ATS Score"
+                    sublabel={analysis.target_role}
+                  />
+                  <div className="mt-4">
+                    <Badge variant={analysis.overall_score >= 75 ? 'emerald' : analysis.overall_score >= 50 ? 'cyan' : 'amber'} pulse>
+                      {analysis.overall_score >= 75 ? 'Strong Interview Candidate' : analysis.overall_score >= 50 ? 'Moderate Match Rate' : 'Needs Optimization'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Section-Wise Breakdown Progress Bars */}
+                <div className="md:col-span-8 space-y-4 text-left">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">ATS Scoring Breakdown</h3>
+                    <p className="text-xs text-slate-400">
+                      Computed via deterministic mathematical rules (weights: 35% keywords, 20% sections, 15% metrics, 15% action verbs, 15% formatting).
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-1">
+                    {[
+                      { name: 'Keyword Match Coverage', score: analysis.breakdown.keyword_match_score, color: 'from-cyan-500 to-blue-500' },
+                      { name: 'Section Completeness', score: analysis.breakdown.section_completeness_score, color: 'from-emerald-500 to-teal-500' },
+                      { name: 'Quantifiable Metrics & Numbers', score: analysis.breakdown.quantifiable_impact_score, color: 'from-violet-500 to-purple-500' },
+                      { name: 'Technical Action Verbs', score: analysis.breakdown.action_verbs_score, color: 'from-amber-500 to-orange-500' },
+                      { name: 'Formatting & Contact Info', score: analysis.breakdown.formatting_score, color: 'from-pink-500 to-rose-500' },
+                    ].map((item) => (
+                      <div key={item.name} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-300 font-medium">{item.name}</span>
+                          <span className="font-mono text-cyan-300 font-bold">{Math.round(item.score)}%</span>
                         </div>
-                      ) : (
-                        <div>
-                          <span className="text-[10px] font-semibold text-slate-500 block mb-0.5">
-                            ORIGINAL ({issue.section})
-                          </span>
-                          <p className="italic text-slate-300">"{issue.original_text}"</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* For Bullet Rewrites: AI Suggestions */}
-                    {!isSkillIssue && rewrites.length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <span className="text-[11px] font-semibold text-cyan-400 flex items-center gap-1">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          Truthful AI Rewrites (STAR / Google X-Y-Z)
-                        </span>
-
-                        <div className="space-y-2">
-                          {rewrites.map((opt) => (
-                            <label
-                              key={opt.rewrite_id}
-                              className={`block p-3 rounded-xl border text-xs cursor-pointer transition-all ${
-                                selectedRewriteId[issue.id] === opt.rewrite_id
-                                  ? 'border-cyan-500 bg-cyan-500/10 text-white'
-                                  : 'border-white/5 bg-white/[0.01] text-slate-300 hover:border-white/10'
-                              }`}
-                            >
-                              <div className="flex items-start gap-2">
-                                <input
-                                  type="radio"
-                                  name={`rewrite_${issue.id}`}
-                                  checked={selectedRewriteId[issue.id] === opt.rewrite_id}
-                                  onChange={() =>
-                                    setSelectedRewriteId((prev) => ({
-                                      ...prev,
-                                      [issue.id]: opt.rewrite_id,
-                                    }))
-                                  }
-                                  className="mt-0.5 accent-cyan-400"
-                                />
-                                <div className="space-y-1 flex-1">
-                                  <p>{opt.text}</p>
-                                  {opt.rationale && (
-                                    <p className="text-[10px] text-slate-400">{opt.rationale}</p>
-                                  )}
-                                </div>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-
-                        {/* Truth Rule Candidate Fill-In Prompt */}
-                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
-                          <label className="text-[11px] font-medium block">
-                            Truth Rule: Type your real metric / number (e.g. "35% latency reduction"):
-                          </label>
-                          <input
-                            type="text"
-                            value={fillInValues[issue.id] || ''}
-                            onChange={(e) =>
-                              setFillInValues((prev) => ({
-                                ...prev,
-                                [issue.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="e.g. 40% reduction, 10,000 requests/sec"
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-black/40 border border-amber-500/30 text-xs text-white focus:outline-none focus:border-amber-400"
+                        <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${item.score}%` }}
+                            transition={{ duration: 1, ease: 'easeOut' }}
+                            className={`h-full rounded-full bg-gradient-to-r ${item.color}`}
                           />
                         </div>
                       </div>
-                    )}
-
-                    {/* Manual Edit Mode */}
-                    {isEditing && (
-                      <div className="space-y-2 pt-1">
-                        <textarea
-                          rows={2}
-                          value={manualEditText}
-                          onChange={(e) => setManualEditText(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-black/40 border border-cyan-500/40 text-xs text-white focus:outline-none"
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="primary" onClick={() => handleSaveManualEdit(issue)}>
-                            Save Edit
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setEditingIssueId(null)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons: Accept / Edit / Skip */}
-                    {!isEditing && (
-                      <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                        <div className="flex items-center gap-2">
-                          {isSkillIssue ? (
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleConfirmMissingSkill(issue)}
-                            >
-                              Yes, Add Skill
-                            </Button>
-                          ) : rewrites.length === 0 ? (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleFetchRewrites(issue)}
-                              disabled={isLoading}
-                              className="flex items-center gap-1.5"
-                            >
-                              {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                              <span>Suggest Rewrites</span>
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              onClick={() => handleAcceptBulletRewrite(issue)}
-                            >
-                              Accept Rewrite
-                            </Button>
-                          )}
-
-                          {!isSkillIssue && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingIssueId(issue.id);
-                                setManualEditText(issue.original_text);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          )}
-                        </div>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleSkipIssue(issue.id)}
-                          className="text-slate-400 hover:text-slate-200"
-                        >
-                          Skip
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* =================================================================== */}
-      {/* STEP 3: ATS REBUILD, LIVE DIRECT EDITING & PDF/DOCX EXPORT */}
-      {/* =================================================================== */}
-      {step === 3 && canonicalResume && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="space-y-6"
-        >
-          {/* Top Control Bar: Template Switcher + Score Evolution + Export Actions */}
-          <Card className="p-5 border-white/10 bg-white/[0.02]">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* Left: Template Switcher (Classic, Modern, Minimal) */}
-              <div className="space-y-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
-                  ATS Template
-                </span>
-                <div className="flex items-center gap-2">
-                  {(['classic', 'modern', 'minimal'] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setTemplate(t)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium capitalize transition-all border ${
-                        template === t
-                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm'
-                          : 'bg-white/[0.03] text-slate-400 border-white/10 hover:text-white'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Center: Score Evolution & Page Budget Indicator */}
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Score change badge: e.g. "48 to 82" */}
-                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1.5 text-xs text-emerald-300">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>
-                    ATS Score: <b>{initialScore ?? scoreBreakdown?.overall_score ?? 60}</b> &rarr;{' '}
-                    <b className="text-white">{scoreBreakdown?.overall_score ?? 85}</b>
-                  </span>
-                </div>
-
-                {/* Page Fit Indicator */}
-                <div
-                  className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs ${
-                    isOnePageFit
-                      ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
-                      : 'bg-purple-500/10 border-purple-500/30 text-purple-300'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>{isOnePageFit ? '1-Page Fit: Optimal' : '2-Page Fit: Extended'}</span>
-                </div>
-
-                {/* Self-Test Badge */}
-                {selfTestResult && (
-                  <div className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-1.5 font-medium">
-                    <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ATS-readable ({selfTestResult.character_count} chars verified)</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Export Buttons */}
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleExport('pdf')}
-                  disabled={exporting !== null}
-                  className="flex items-center gap-1.5"
-                >
-                  {exporting === 'pdf' ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>Export PDF</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleExport('docx')}
-                  disabled={exporting !== null}
-                  className="flex items-center gap-1.5"
-                >
-                  {exporting === 'docx' ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <FileText className="w-3.5 h-3.5" />
-                  )}
-                  <span>Export DOCX</span>
-                </Button>
-              </div>
-            </div>
-          </Card>
-
-          {/* Live Paper-Style Preview with Direct Inline Editing */}
-          <div className="bg-slate-950/60 p-4 sm:p-8 rounded-2xl border border-white/5 flex flex-col items-center">
-            <p className="text-[11px] text-slate-400 mb-3 flex items-center gap-1.5">
-              <Edit3 className="w-3 h-3 text-cyan-400" />
-              <span>Direct editing enabled: Click any line or bullet below to edit inline.</span>
-            </p>
-
-            {/* Paper Container */}
-            <div
-              className={`w-full max-w-[800px] min-h-[1050px] bg-white text-slate-900 shadow-2xl p-8 sm:p-12 rounded-sm transition-all text-xs ${
-                template === 'classic'
-                  ? 'font-serif'
-                  : 'font-sans'
-              }`}
-            >
-              {/* Header (Candidate Contact Info) */}
-              <div
-                className={`pb-3 mb-4 ${
-                  template === 'classic'
-                    ? 'text-center border-b border-slate-300'
-                    : template === 'modern'
-                    ? 'text-left border-b-2 border-cyan-600'
-                    : 'text-left border-b border-slate-200'
-                }`}
-              >
-                <h1
-                  className={`font-bold tracking-tight ${
-                    template === 'modern'
-                      ? 'text-2xl text-cyan-700'
-                      : template === 'classic'
-                      ? 'text-2xl text-slate-900'
-                      : 'text-xl text-slate-900'
-                  }`}
-                >
-                  {canonicalResume.contact.full_name}
-                </h1>
-                <p className="text-[11px] text-slate-600 mt-1">
-                  {[
-                    canonicalResume.contact.email,
-                    canonicalResume.contact.phone,
-                    canonicalResume.contact.location,
-                    canonicalResume.contact.linkedin,
-                    canonicalResume.contact.github,
-                  ]
-                    .filter(Boolean)
-                    .join(' • ')}
-                </p>
-              </div>
-
-              {/* Summary */}
-              {canonicalResume.summary && (
-                <div className="mb-4">
-                  <h2
-                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                      template === 'modern'
-                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
-                        : template === 'classic'
-                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
-                        : 'text-slate-900 pb-0.5'
-                    }`}
-                  >
-                    Summary
-                  </h2>
-                  {inlineEditingKey === 'summary' ? (
-                    <textarea
-                      rows={2}
-                      defaultValue={canonicalResume.summary}
-                      onBlur={(e) => handleDirectEdit('summary', e.target.value)}
-                      autoFocus
-                      className="w-full p-2 border border-cyan-500 rounded text-xs text-slate-900 focus:outline-none"
-                    />
-                  ) : (
-                    <p
-                      onClick={() => setInlineEditingKey('summary')}
-                      className="cursor-pointer hover:bg-cyan-50/50 p-1 rounded transition-colors text-slate-800"
-                      title="Click to edit summary"
-                    >
-                      {canonicalResume.summary}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Technical Skills */}
-              <div className="mb-4">
-                <h2
-                  className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                    template === 'modern'
-                      ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
-                      : template === 'classic'
-                      ? 'text-slate-800 border-b border-slate-300 pb-0.5'
-                      : 'text-slate-900 pb-0.5'
-                  }`}
-                >
-                  Technical Skills
-                </h2>
-                <div className="space-y-0.5 text-slate-800">
-                  {canonicalResume.skills.languages.length > 0 && (
-                    <p>
-                      <span className="font-semibold">Languages: </span>
-                      {canonicalResume.skills.languages.join(', ')}
-                    </p>
-                  )}
-                  {canonicalResume.skills.frameworks.length > 0 && (
-                    <p>
-                      <span className="font-semibold">Frameworks: </span>
-                      {canonicalResume.skills.frameworks.join(', ')}
-                    </p>
-                  )}
-                  {canonicalResume.skills.developer_tools.length > 0 && (
-                    <p>
-                      <span className="font-semibold">Developer Tools: </span>
-                      {canonicalResume.skills.developer_tools.join(', ')}
-                    </p>
-                  )}
-                  {canonicalResume.skills.cloud_databases.length > 0 && (
-                    <p>
-                      <span className="font-semibold">Databases & Cloud: </span>
-                      {canonicalResume.skills.cloud_databases.join(', ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Professional Experience */}
-              {canonicalResume.experience.length > 0 && (
-                <div className="mb-4">
-                  <h2
-                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                      template === 'modern'
-                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
-                        : template === 'classic'
-                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
-                        : 'text-slate-900 pb-0.5'
-                    }`}
-                  >
-                    Experience
-                  </h2>
-                  {canonicalResume.experience.map((exp, expIdx) => (
-                    <div key={expIdx} className="mb-3">
-                      <div className="flex justify-between font-bold text-slate-900">
-                        <span>
-                          {exp.role} • {exp.company}
-                        </span>
-                        <span className="text-[11px] font-normal text-slate-600">
-                          {exp.start_date} – {exp.end_date}
-                        </span>
-                      </div>
-                      <ul className="list-disc list-inside space-y-1 text-slate-800 mt-1">
-                        {exp.bullets.map((b, bIdx) => {
-                          const key = `exp_bullet_${expIdx}_${bIdx}`;
-                          return (
-                            <li key={bIdx} className="leading-relaxed">
-                              {inlineEditingKey === key ? (
-                                <input
-                                  type="text"
-                                  defaultValue={b}
-                                  onBlur={(e) => handleDirectEdit(key, e.target.value)}
-                                  autoFocus
-                                  className="w-full px-1.5 py-0.5 border border-cyan-500 rounded text-xs text-slate-900 focus:outline-none"
-                                />
-                              ) : (
-                                <span
-                                  onClick={() => setInlineEditingKey(key)}
-                                  className="cursor-pointer hover:bg-cyan-50/60 p-0.5 rounded transition-colors"
-                                  title="Click to edit bullet"
-                                >
-                                  {b}
-                                </span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Projects */}
-              {canonicalResume.projects.length > 0 && (
-                <div className="mb-4">
-                  <h2
-                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                      template === 'modern'
-                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
-                        : template === 'classic'
-                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
-                        : 'text-slate-900 pb-0.5'
-                    }`}
-                  >
-                    Projects
-                  </h2>
-                  {canonicalResume.projects.map((proj, pIdx) => (
-                    <div key={pIdx} className="mb-2">
-                      <div className="font-bold text-slate-900">
-                        {proj.name}
-                        {proj.tech_stack.length > 0 && (
-                          <span className="font-normal italic text-[11px] text-slate-600 ml-1">
-                            ({proj.tech_stack.join(', ')})
-                          </span>
-                        )}
-                      </div>
-                      {proj.description && (
-                        <p className="text-slate-700 mb-0.5">{proj.description}</p>
-                      )}
-                      <ul className="list-disc list-inside space-y-0.5 text-slate-800">
-                        {proj.bullets.map((b, bIdx) => {
-                          const key = `proj_bullet_${pIdx}_${bIdx}`;
-                          return (
-                            <li key={bIdx}>
-                              {inlineEditingKey === key ? (
-                                <input
-                                  type="text"
-                                  defaultValue={b}
-                                  onBlur={(e) => handleDirectEdit(key, e.target.value)}
-                                  autoFocus
-                                  className="w-full px-1.5 py-0.5 border border-cyan-500 rounded text-xs text-slate-900 focus:outline-none"
-                                />
-                              ) : (
-                                <span
-                                  onClick={() => setInlineEditingKey(key)}
-                                  className="cursor-pointer hover:bg-cyan-50/60 p-0.5 rounded transition-colors"
-                                  title="Click to edit project bullet"
-                                >
-                                  {b}
-                                </span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Education */}
-              {canonicalResume.education.length > 0 && (
-                <div className="mb-4">
-                  <h2
-                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                      template === 'modern'
-                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
-                        : template === 'classic'
-                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
-                        : 'text-slate-900 pb-0.5'
-                    }`}
-                  >
-                    Education
-                  </h2>
-                  {canonicalResume.education.map((edu, idx) => (
-                    <div key={idx} className="flex justify-between text-slate-800">
-                      <div>
-                        <span className="font-bold text-slate-900">{edu.institution}</span> —{' '}
-                        {edu.degree} in {edu.field_of_study}
-                        {edu.gpa_or_grade && <span className="ml-1 text-slate-600">({edu.gpa_or_grade})</span>}
-                      </div>
-                      <span className="text-[11px] text-slate-600">{edu.graduation_year}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Certifications */}
-              {canonicalResume.certifications.length > 0 && (
-                <div>
-                  <h2
-                    className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                      template === 'modern'
-                        ? 'text-cyan-700 border-b border-cyan-100 pb-0.5'
-                        : template === 'classic'
-                        ? 'text-slate-800 border-b border-slate-300 pb-0.5'
-                        : 'text-slate-900 pb-0.5'
-                    }`}
-                  >
-                    Certifications
-                  </h2>
-                  <ul className="list-disc list-inside space-y-0.5 text-slate-800">
-                    {canonicalResume.certifications.map((c, idx) => (
-                      <li key={idx}>
-                        <span className="font-semibold">{c.name}</span> — {c.issuer}
-                        {c.year && <span className="text-slate-600"> ({c.year})</span>}
-                      </li>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-              )}
+
+              </div>
+            </Card>
+
+            {/* Keyword Match Matrix Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+              
+              {/* Matched Keywords */}
+              <Card padding="md" glow="emerald">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Matched Core Keywords ({analysis.matched_keywords.length})</h4>
+                    <p className="text-[11px] text-slate-400">Technical skills verified in both resume and target JD</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {analysis.matched_keywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono flex items-center gap-1"
+                    >
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      {kw}
+                    </span>
+                  ))}
+                  {analysis.matched_keywords.length === 0 && (
+                    <span className="text-xs text-slate-500 italic">No direct keyword overlap detected.</span>
+                  )}
+                </div>
+              </Card>
+
+              {/* Missing Keywords */}
+              <Card padding="md" glow="amber">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Missing Skill Gaps ({analysis.missing_keywords.length})</h4>
+                    <p className="text-[11px] text-slate-400">Required by job description; consider adding where applicable</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {analysis.missing_keywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3 text-amber-400" />
+                      {kw}
+                    </span>
+                  ))}
+                  {analysis.missing_keywords.length === 0 && (
+                    <span className="text-xs text-emerald-400">Exceptional coverage! No missing required skills.</span>
+                  )}
+                </div>
+              </Card>
+
             </div>
-          </div>
-        </motion.div>
-      )}
+
+            {/* Actionable Gemini Recommendations */}
+            <Card padding="md" glow="cyan" className="text-left">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Gemini Actionable Optimization Roadmap</h4>
+                  <p className="text-[11px] text-slate-400">Targeted recommendations to raise your ATS score before applying</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {analysis.actionable_tips.map((tip, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-white/5 border border-white/5 text-xs text-slate-300 flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-md bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-mono text-[10px] flex-shrink-0 mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <span className="leading-relaxed">{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Gateway CTA to Mock Interview */}
+            <Card padding="md" glow="violet" className="text-center relative overflow-hidden bg-gradient-to-r from-cyan-950/40 via-violet-950/40 to-slate-900 border-violet-500/30">
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                Practice your interview
+              </h3>
+              <p className="text-xs text-slate-400 max-w-lg mx-auto mt-1">
+                Roleplay realistic questions based on your resume.
+              </p>
+
+              <div className="mt-4 flex justify-center">
+                <Button
+                  size="md"
+                  variant="primary"
+                  icon={<Mic className="w-4 h-4" />}
+                  onClick={() => window.location.href = '/interview'}
+                >
+                  Start interview
+                </Button>
+              </div>
+            </Card>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

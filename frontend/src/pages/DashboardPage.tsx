@@ -133,22 +133,20 @@ export const DashboardPage: React.FC = () => {
         </Card>
 
         {/* KPI 4: Latest ATS score */}
-        <Link to="/analyzer" className="block">
-          <Card padding="md" className="border-amber-500/20 bg-slate-900/60 hover:border-amber-500/40 transition-colors h-full">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span className="flex items-center gap-1.5">
-                Latest ATS
-                <InfoTooltip text="Most recent resume match score. Click to improve." />
-              </span>
-              <FileText className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white">
-              {metrics?.latest_ats_score !== null && metrics?.latest_ats_score !== undefined
-                ? `${metrics.latest_ats_score}%`
-                : '-'}
-            </div>
-          </Card>
-        </Link>
+        <Card padding="md" className="border-amber-500/20 bg-slate-900/60">
+          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+            <span className="flex items-center gap-1.5">
+              Latest ATS
+              <InfoTooltip text="Most recent resume match percentage." />
+            </span>
+            <FileText className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-white">
+            {metrics?.latest_ats_score !== null && metrics?.latest_ats_score !== undefined
+              ? `${metrics.latest_ats_score}%`
+              : '-'}
+          </div>
+        </Card>
       </div>
 
       {/* Conditional Rendering: Empty State for New Users vs Full Analytics */}
@@ -213,60 +211,6 @@ export const DashboardPage: React.FC = () => {
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#scoreGlow)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          )}
-
-          {/* Resume Score Evolution Across Versions */}
-          {metrics?.resume_version_trend && metrics.resume_version_trend.length > 0 && (
-            <Card glow="cyan" padding="lg" className="border-emerald-500/20 bg-slate-900/60">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-emerald-400" />
-                  <h2 className="text-sm font-bold text-white">Resume score evolution</h2>
-                </div>
-                <span className="text-[11px] font-mono text-emerald-400">ATS Score vs Versions</span>
-              </div>
-
-              <div className="w-full h-48 sm:h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={metrics.resume_version_trend}>
-                    <defs>
-                      <linearGradient id="resumeGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.6} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="label"
-                      stroke="#475569"
-                      tick={{ fill: '#94a3b8', fontSize: 11 }}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      stroke="#475569"
-                      tick={{ fill: '#94a3b8', fontSize: 11 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#0f172a',
-                        borderColor: '#1e293b',
-                        borderRadius: '8px',
-                        color: '#f8fafc',
-                        fontSize: '12px',
-                      }}
-                      formatter={(val: any) => [`${val}%`, 'ATS Score']}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="score"
-                      stroke="#10b981"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#resumeGlow)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
