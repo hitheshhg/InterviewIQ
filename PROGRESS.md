@@ -30,14 +30,15 @@
 | **Phase F3 (Resume Flow v2)** | Guided Improvement UI & Truth Rule Engine | ✅ COMPLETED | Truth Rule bullet rewrite service with Google X-Y-Z formula, fill-in placeholders for real metrics, adversarial anti-hallucination sanitization, missing skills confirmation questions, live dynamic ATS ScoreGauge recalculation, `POST /api/v1/resume/suggest-rewrites`, 6/6 dedicated tests passing (18/18 Resume Flow v2 tests). |
 | **Phase F4 (Resume Flow v2)** | Template Rendering & Export Self-Test | ✅ COMPLETED | 3 ATS-safe templates (Classic, Modern, Minimal), live paper preview with direct inline editing, 1-page/2-page fit indicator, PDF/DOCX export (`POST /export-file`), export self-test re-parser with green "ATS-readable" badge (`POST /export-self-test`), special characters & international accents support, score change evolution tracking, 7/7 dedicated tests passing (25/25 Resume Flow v2 tests). |
 | **Phase F5 (Resume Flow v2)** | Versions, Dashboard Link & Interview Integration | ✅ COMPLETED | Automatic active resume binding in Interview Studio (`Using: Resume v3`), version switcher, algorithmic question seeds targeting unproven skills and weak claims (`GET /api/v1/interview/active-context`), friendly no-resume setup card with direct link to Step 1, dashboard resume score evolution chart across versions, 6/6 dedicated tests passing (31/31 Resume Flow v2 tests). |
+| **Phase F6 (Resume Flow v2)** | Hardening, Auth, Rate Limits, Viva & Demo Script | ✅ COMPLETED | Cryptographic token auth on every endpoint (401 on unauthenticated), per-user token bucket rate limiting (429 friendly response), Gemini offline / quota failover to deterministic engines (zero 500s), cross-account data isolation, end-to-end manual verification checklist, 8 exhaustive VTU Viva Q&As, and 2-minute examiner demo script in `RESUME_FLOW_V2_GUIDE.md`, 6/6 dedicated tests passing (37/37 Resume Flow v2 tests). |
 
 ---
 
-## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 + Phases F1, F2, F3, F4 & F5 Delivered)
+## 🏆 Project Completion Status: 100% COMPLETED (Phases 0–12 + Change Request v2 + All Phases F1 to F6 Delivered)
 
-- **Platform Status:** Production-ready, simplified, and fully verified.
-- **Automated Tests:** 31/31 Resume Flow v2 tests passing (F1, F2, F3, F4, F5) and complete test suites verified.
-- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build` in 5.18s).
+- **Platform Status:** Production-ready, hardened, and verified for VTU Major Project evaluation.
+- **Automated Tests:** 37/37 Resume Flow v2 unit tests passing (F1 through F6) and complete test suites verified.
+- **Frontend Build:** Strict TypeScript compilation with 0 errors (`tsc -b && vite build`).
 - **Backend API:** FastAPI running with live MongoDB Atlas connection, Gemini AI failover, and active-resume storage.
 - **Data Isolation:** Verified cross-account boundary testing (User A and User B cannot access each other's data).
 - **Security & Quota:** Strict Firebase ID token verification and per-user AI rate limiting (friendly 429 handler).

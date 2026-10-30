@@ -34,7 +34,9 @@ def get_user_id(current_user: Dict[str, Any]) -> str:
 
 
 @router.get("/active-context")
+@limiter.limit("60/minute")
 async def get_interview_active_context(
+    request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """

@@ -159,7 +159,9 @@ async def parse_uploaded_resume(
 
 
 @router.post("/save-active", response_model=ActiveResumeResponse)
+@limiter.limit("30/minute")
 async def save_active_resume(
+    request: Request,
     payload: SaveActiveResumeRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -175,7 +177,9 @@ async def save_active_resume(
 
 
 @router.get("/active", response_model=ActiveResumeResponse)
+@limiter.limit("60/minute")
 async def get_candidate_active_resume(
+    request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
@@ -205,7 +209,9 @@ async def get_candidate_active_resume(
 
 
 @router.post("/evaluate", response_model=ATSScoreBreakdown)
+@limiter.limit("30/minute")
 async def evaluate_canonical_resume(
+    request: Request,
     payload: EvaluateResumeRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -246,7 +252,9 @@ async def suggest_bullet_rewrites(
 
 
 @router.post("/export-file")
+@limiter.limit("15/minute")
 async def export_resume_file(
+    request: Request,
     payload: ExportResumeRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -290,7 +298,9 @@ async def export_resume_file(
 
 
 @router.post("/export-self-test", response_model=ExportSelfTestResult)
+@limiter.limit("15/minute")
 async def export_self_test(
+    request: Request,
     payload: ExportResumeRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -313,7 +323,9 @@ async def export_self_test(
 
 
 @router.get("/versions")
+@limiter.limit("60/minute")
 async def list_candidate_resume_versions(
+    request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """List all saved resume versions for the candidate."""
